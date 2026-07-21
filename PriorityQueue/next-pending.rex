@@ -1,4 +1,5 @@
 #!/usr/bin/env rexx
+/* Developed with AI assistance from Claude (Anthropic) -- 20 Jul 2026 */
 /* next-pending.rex
  *
  * Generic priority-queue bookkeeping: given a flat text queue file and a
@@ -88,3 +89,4 @@ do while lines(queueFile) > 0
 end
 call stream queueFile, 'C', 'CLOSE'
 exit 1
+

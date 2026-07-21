@@ -1,3 +1,4 @@
+/* Developed with AI assistance from Claude (Anthropic) -- 20 Jul 2026 */
 #!/usr/bin/env rexx
 /* baen-extract.rex
  *
@@ -225,3 +226,4 @@ dirHasBooks: procedure
     call SysFileTree d'\*.pdf',  h3., 'FO'
     if h3.0 > 0 then return 1
     return 0
+

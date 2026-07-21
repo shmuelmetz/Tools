@@ -1,3 +1,4 @@
+/* Developed with AI assistance from Claude (Anthropic) -- 20 Jul 2026 */
 /* Test timing of array access versus stems */
 
 iterations = 50000
@@ -62,3 +63,4 @@ do w over mywords~makearray(' ')
    myword = w
    end
 say iterations 'iterations with w over string  took' time('R') seconds
+

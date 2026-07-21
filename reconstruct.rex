@@ -1,3 +1,4 @@
+/* Developed with AI assistance from Claude (Anthropic) -- 20 Jul 2026 */
 /* reconstruct.rex - full script, main routine first, DO-group style */
 
 parse arg argLine
@@ -254,3 +255,4 @@ exit 0
 
   say "reconstruct version" opts["version"]
   return
+

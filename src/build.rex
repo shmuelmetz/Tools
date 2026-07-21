@@ -1,3 +1,4 @@
+/* Developed with AI assistance from Claude (Anthropic) -- 20 Jul 2026 */
 /* build.rex
  *
  * Prepend the appropriate platform-specific first line to a script
@@ -202,3 +203,4 @@ usage: procedure
     say 'Output files are named: basename-platform.ext'
     say '  webzip.rex  -> webzip-unix (no ext), webzip-windows.rex, webzip-os2.cmd'
     return
+
