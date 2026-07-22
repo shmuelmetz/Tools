@@ -30,14 +30,14 @@
        Read-only; never copies or extracts anything. */
 
 ::METHOD import ABSTRACT
-    /* (bookId, destDir, prefix = '', status = .nil) -> .true/.false.
+    /* (bookId, destDir, prefix = '', status = (.nil)) -> .true/.false.
        Copies/extracts one book's files into destDir, optionally prefixing
        output filenames. If status is given (a mutable .Directory), it's
        populated with ok/count/etc. as a richer alternative to the boolean
        return -- caller's choice, not forced. */
 
 ::METHOD export ABSTRACT
-    /* (bookIds, destZip, status = .nil) -> .true/.false.
+    /* (bookIds, destZip, status = (.nil)) -> .true/.false.
        Packages the given book IDs into a new zip at destZip. */
 
 
@@ -69,7 +69,7 @@
     return books
 
 ::METHOD import
-    use strict arg bookId, destDir, prefix = '', status = .nil
+    use strict arg bookId, destDir, prefix = '', status = (.nil)
     expose root
     srcDir = root'\'bookId
     if \SysIsFileDirectory(srcDir) then do
@@ -90,7 +90,7 @@
     return copied > 0
 
 ::METHOD export
-    use strict arg bookIds, destZip, status = .nil
+    use strict arg bookIds, destZip, status = (.nil)
     expose root
     fisClass = bsf.import("java.io.FileInputStream")
     fosClass = bsf.import("java.io.FileOutputStream")
@@ -155,7 +155,7 @@
     return books
 
 ::METHOD import
-    use strict arg bookId, destDir, prefix = '', status = .nil
+    use strict arg bookId, destDir, prefix = '', status = (.nil)
     expose zipPath
     if \SysFileExists(zipPath) then do
         if status \= .nil then status~ok = .false
@@ -187,7 +187,7 @@
     return extracted > 0
 
 ::METHOD export
-    use strict arg bookIds, destZip, status = .nil
+    use strict arg bookIds, destZip, status = (.nil)
     expose zipPath
     if \SysFileExists(zipPath) then do
         if status \= .nil then status~ok = .false
@@ -251,7 +251,7 @@
     return books
 
 ::METHOD import
-    use strict arg bookId, destDir, prefix = '', status = .nil
+    use strict arg bookId, destDir, prefix = '', status = (.nil)
     expose catalog
     if \catalog~hasIndex(bookId) then do
         if status \= .nil then status~ok = .false
@@ -273,7 +273,7 @@
     return .true
 
 ::METHOD export
-    use strict arg bookIds, destZip, status = .nil
+    use strict arg bookIds, destZip, status = (.nil)
     if status \= .nil then do
         status~ok     = .false
         status~reason = 'URLSource has no local content to export'

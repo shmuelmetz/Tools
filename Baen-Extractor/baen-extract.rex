@@ -28,7 +28,7 @@
 call RxFuncAdd 'SysLoadFuncs', 'REXXUTIL', 'SysLoadFuncs'
 call SysLoadFuncs
 
-use arg srcDir = 'M:\BAEN', outDir = directory(), dryRun = 0, verbose = 0, overwrite = 0
+use arg srcDir = 'M:\BAEN', outDir = (directory()), dryRun = 0, verbose = 0, overwrite = 0
 
 /* ── Locate info-zip ──────────────────────────────────────────────── */
 zipBin = ''
