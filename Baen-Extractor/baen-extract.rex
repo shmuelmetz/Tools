@@ -1,5 +1,5 @@
-/* Developed with AI assistance from Claude (Anthropic) -- 20 Jul 2026 */
 #!/usr/bin/env rexx
+/* Developed with AI assistance from Claude Sonnet 5 (Anthropic) -- 21 Jul 2026 */
 /* baen-extract.rex
  *
  * Extracts each book in a Baen Free Library archive to a separate zip.
@@ -7,15 +7,15 @@
  * Supported book formats: HTML (.htm, .html) and PDF (.pdf).
  * Each book directory on the source drive becomes one output zip.
  *
- * Usage:
- *   rexx baen-extract.rex [options]
+ * Usage (real positional parameters -- no switch string to parse):
+ *   rexx baen-extract.rex [srcDir] [outDir] [dryRun] [verbose] [overwrite]
  *
- * Options:
- *   /SRC:path     Source directory tree (default: M:\BAEN)
- *   /OUT:path     Output directory for per-book zips (default: current dir)
- *   /DRY          Dry run: list books found, don't create zips
- *   /VERBOSE      Show each file added to each zip
- *   /OVERWRITE    Overwrite existing output zips (default: skip)
+ * Parameters (all optional, in order):
+ *   srcDir     Source directory tree (default: M:\BAEN)
+ *   outDir     Output directory for per-book zips (default: current dir)
+ *   dryRun     1 = list books found, don't create zips (default: 0)
+ *   verbose    1 = show each file added to each zip (default: 0)
+ *   overwrite  1 = overwrite existing output zips (default: 0, skip)
  *
  * Requires:
  *   ooRexx 5.x (ArcaOS / Windows)
@@ -28,30 +28,7 @@
 call RxFuncAdd 'SysLoadFuncs', 'REXXUTIL', 'SysLoadFuncs'
 call SysLoadFuncs
 
-parse arg argLine
-argLine = strip(argLine)
-
-/* ── Defaults ─────────────────────────────────────────────────────── */
-srcDir   = 'M:\BAEN'
-outDir   = directory()
-dryRun   = 0
-verbose  = 0
-overwrite = 0
-
-/* ── Parse arguments ──────────────────────────────────────────────── */
-do while argLine \= ''
-    parse var argLine tok argLine
-    tok = translate(tok)  /* uppercase for comparison */
-    select
-        when left(tok,5)  = '/SRC:' then srcDir   = substr(tok,6)
-        when left(tok,5)  = '/OUT:' then outDir   = substr(tok,6)
-        when tok          = '/DRY'  then dryRun   = 1
-        when tok          = '/VERBOSE' then verbose = 1
-        when tok          = '/OVERWRITE' then overwrite = 1
-        otherwise
-            say 'WARN: unrecognised option:' tok
-    end
-end
+use arg srcDir = 'M:\BAEN', outDir = directory(), dryRun = 0, verbose = 0, overwrite = 0
 
 /* ── Locate info-zip ──────────────────────────────────────────────── */
 zipBin = ''
