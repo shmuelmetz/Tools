@@ -46,7 +46,7 @@ if zipBin = '' then do
     /* Try PATH lookup via where */
     noIn.0 = 0
     address system 'where zip.exe' with input stem noIn. output stem whereOut. error stem whereErr.
-    if result = 0 & whereOut.0 > 0 then zipBin = strip(whereOut.1)
+    if rc = 0 & whereOut.0 > 0 then zipBin = strip(whereOut.1)
 end
 if zipBin = '' & \dryRun then do
     say 'ERROR: zip.exe not found. Install info-zip or use /DRY.'
@@ -168,7 +168,7 @@ do bookDir over bookDirs
     if overwrite then overwriteFlag = '-u'
     zipCmd = '"'zipBin'" -j -q 'overwriteFlag' "'outZip'" @"'outDir'\.__ziplist.tmp"'
     address system zipCmd with input stem noIn. output stem zOut. error stem zErr.
-    zipRc = result
+    zipRc = rc
 
     call SysFileDelete outDir'\.__ziplist.tmp'
 
