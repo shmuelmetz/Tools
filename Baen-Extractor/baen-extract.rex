@@ -136,7 +136,7 @@ if bookDirs~size = 0 then do
 end
 
 call emit 'Found' bookDirs~size 'book director'||,
-    word('y ies', (bookDirs~size = 1) + 1) || '.'
+    word('ies y', (bookDirs~size = 1) + 1) || '.'
 call emit ''
 
 /* ── Process each book ────────────────────────────────────────────── */
