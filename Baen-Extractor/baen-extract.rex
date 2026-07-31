@@ -7,8 +7,13 @@
  * Supported book formats: HTML (.htm, .html) and PDF (.pdf).
  * Each book directory on the source drive becomes one output zip.
  *
- * Usage (real positional parameters -- no switch string to parse):
- *   rexx baen-extract.rex [srcDir] [outDir] [dryRun] [verbose] [overwrite]
+ * Usage:
+ *   Preferred, from another REXX program (real REXX arguments, no
+ *   command line to build or quote):
+ *     call (path_to_this_file) srcDir, outDir, dryRun, verbose, overwrite
+ *
+ *   Standalone, from a command prompt:
+ *     rexx baen-extract.rex [srcDir] [outDir] [dryRun] [verbose] [overwrite]
  *
  * Parameters (all optional, in order):
  *   srcDir     Source directory tree (default: M:\BAEN)
@@ -28,7 +33,35 @@
 call RxFuncAdd 'SysLoadFuncs', 'REXXUTIL', 'SysLoadFuncs'
 call SysLoadFuncs
 
-use arg srcDir = 'M:\BAEN', outDir = (directory()), dryRun = 0, verbose = 0, overwrite = 0
+/* Dual-mode argument parsing. CALL (path) a, b, c, d, e (this file's    */
+/* preferred invocation, e.g. from session-2026-05-02.rex) gives         */
+/* genuinely separate ARG(n) values -- USE ARG's comma-separated         */
+/* defaults are correct REXX-to-REXX call semantics for that case.       */
+/* Invoked from a raw OS command line instead (rexx baen-extract.rex     */
+/* arg1 arg2 ...), only ARG(1) exists -- ooRexx hands the whole tail to  */
+/* it as one string, so that case needs quote-aware splitting instead.   */
+if arg(2, 'Exists') then
+    use arg srcDir = 'M:\BAEN', outDir = (directory()), dryRun = 0, verbose = 0, overwrite = 0
+else do
+    rawArgs = arg(1)
+    parse var rawArgs 1 firstCh 2
+    if firstCh = '"' then
+        parse var rawArgs '"' srcDir '"' rawArgs
+    else
+        parse var rawArgs srcDir rawArgs
+    rawArgs = strip(rawArgs)
+    parse var rawArgs 1 secondCh 2
+    if secondCh = '"' then
+        parse var rawArgs '"' outDir '"' rawArgs
+    else
+        parse var rawArgs outDir rawArgs
+    parse var rawArgs dryRun verbose overwrite
+    if srcDir    = '' then srcDir    = 'M:\BAEN'
+    if outDir    = '' then outDir    = directory()
+    if dryRun    = '' then dryRun    = 0
+    if verbose   = '' then verbose   = 0
+    if overwrite = '' then overwrite = 0
+end
 
 /* ── Locate info-zip ──────────────────────────────────────────────── */
 zipBin = ''
@@ -49,13 +82,13 @@ if zipBin = '' then do
     if rc = 0 & whereOut.0 > 0 then zipBin = strip(whereOut.1)
 end
 if zipBin = '' & \dryRun then do
-    say 'ERROR: zip.exe not found. Install info-zip or use /DRY.'
+    call emit 'ERROR: zip.exe not found. Install info-zip or use /DRY.'
     exit 1
 end
 
 /* ── Validate source ──────────────────────────────────────────────── */
 if \SysFileExists(srcDir) then do
-    say 'ERROR: source directory not found:' srcDir
+    call emit 'ERROR: source directory not found:' srcDir
     exit 1
 end
 
@@ -63,11 +96,11 @@ end
 if \dryRun then
     call SysMkDir outDir
 
-say '=== Baen archive extractor ==='
-say '  Source :' srcDir
-say '  Output :' outDir
-say '  Dry run:' (dryRun = 1)
-say ''
+call emit '=== Baen archive extractor ==='
+call emit '  Source :' srcDir
+call emit '  Output :' outDir
+call emit '  Dry run:' (dryRun = 1)
+call emit ''
 
 /* ── Find book directories ────────────────────────────────────────── */
 /* Strategy: a "book directory" is any directory directly under srcDir
@@ -98,13 +131,13 @@ do ti = 1 to topEntries.0
 end
 
 if bookDirs~size = 0 then do
-    say 'No book directories found under' srcDir
+    call emit 'No book directories found under' srcDir
     exit 0
 end
 
-say 'Found' bookDirs~size 'book director'||,
+call emit 'Found' bookDirs~size 'book director'||,
     word('y ies', (bookDirs~size = 1) + 1) || '.'
-say ''
+call emit ''
 
 /* ── Process each book ────────────────────────────────────────────── */
 created  = 0
@@ -117,12 +150,12 @@ do bookDir over bookDirs
     outZip   = outDir'\'bookName'.zip'
 
     if SysFileExists(outZip) & \overwrite then do
-        if verbose then say '  SKIP (exists): ' outZip
+        if verbose then call emit '  SKIP (exists): ' outZip
         skipped = skipped + 1
         iterate
     end
 
-    say 'Book:' bookName
+    call emit 'Book:' bookName
     if dryRun then do
         /* List files that would be included */
         call SysFileTree bookDir'\*', bookFiles., 'FOS'
@@ -130,7 +163,7 @@ do bookDir over bookDirs
             bf = strip(bookFiles.bfi)
             ext = translate(right(bf, 4))
             if ext = '.htm' | ext = 'html' | ext = '.pdf' then
-                say '  +'  bf
+                call emit '  +'  bf
         end
         iterate
     end
@@ -142,7 +175,7 @@ do bookDir over bookDirs
 
     totalFiles = htmFiles.0 + htmlFiles.0 + pdfFiles.0
     if totalFiles = 0 then do
-        say '  NOTE: no .htm/.html/.pdf files found -- skipping'
+        call emit '  NOTE: no .htm/.html/.pdf files found -- skipping'
         iterate
     end
 
@@ -151,15 +184,15 @@ do bookDir over bookDirs
     call stream outDir'\.__ziplist.tmp', 'C', 'OPEN WRITE REPLACE'
     do fi = 1 to htmFiles.0
         call lineout outDir'\.__ziplist.tmp', strip(htmFiles.fi)
-        if verbose then say '  +' strip(htmFiles.fi)
+        if verbose then call emit '  +' strip(htmFiles.fi)
     end
     do fi = 1 to htmlFiles.0
         call lineout outDir'\.__ziplist.tmp', strip(htmlFiles.fi)
-        if verbose then say '  +' strip(htmlFiles.fi)
+        if verbose then call emit '  +' strip(htmlFiles.fi)
     end
     do fi = 1 to pdfFiles.0
         call lineout outDir'\.__ziplist.tmp', strip(pdfFiles.fi)
-        if verbose then say '  +' strip(pdfFiles.fi)
+        if verbose then call emit '  +' strip(pdfFiles.fi)
     end
     call stream outDir'\.__ziplist.tmp', 'C', 'CLOSE'
 
@@ -173,22 +206,22 @@ do bookDir over bookDirs
     call SysFileDelete outDir'\.__ziplist.tmp'
 
     if zipRc = 0 then do
-        say '  OK:' totalFiles 'file(s) ->' outZip
+        call emit '  OK:' totalFiles 'file(s) ->' outZip
         created = created + 1
     end
     else do
-        say '  ERROR: zip failed (rc='zipRc') for' bookName
+        call emit '  ERROR: zip failed (rc='zipRc') for' bookName
         if zErr.0 > 0 then
-            do ei = 1 to zErr.0; say '    STDERR:' strip(zErr.ei); end
+            do ei = 1 to zErr.0; call emit '    STDERR:' strip(zErr.ei); end
         errors = errors + 1
     end
 end
 
-say ''
-say '=== Done ==='
-say '  Created :' created
-say '  Skipped :' skipped '(already exist; use /OVERWRITE to replace)'
-say '  Errors  :' errors
+call emit ''
+call emit '=== Done ==='
+call emit '  Created :' created
+call emit '  Skipped :' skipped '(already exist; use /OVERWRITE to replace)'
+call emit '  Errors  :' errors
 exit (errors > 0)
 
 
@@ -203,4 +236,17 @@ dirHasBooks: procedure
     call SysFileTree d'\*.pdf',  h3., 'FO'
     if h3.0 > 0 then return 1
     return 0
+
+emit: procedure
+    /* Prints to console either way (so standalone command-line use is   */
+    /* unaffected) and, when the caller has set one up via CALL, also    */
+    /* appends to .local~baeMessages -- since CALLing this file directly */
+    /* (rather than spawning it as a subprocess) doesn't give the caller */
+    /* free stdout capture the way ADDRESS SYSTEM's WITH OUTPUT STEM     */
+    /* clause does.                                                      */
+    parse arg msg
+    say msg
+    if .local~baeMessages \= .nil then
+        .local~baeMessages~append(msg)
+    return
 
