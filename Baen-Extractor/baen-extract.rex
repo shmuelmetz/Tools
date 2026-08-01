@@ -65,6 +65,11 @@ end
 
 /* ── Locate info-zip ──────────────────────────────────────────────── */
 zipBin = ''
+noIn.0 = 0   /* empty input stem for every ADDRESS SYSTEM ... WITH INPUT STEM  */
+             /* call below -- must be set unconditionally, not just inside the */
+             /* PATH-lookup fallback: the per-book zip call further down needs */
+             /* it too, and zip.exe is normally found on the first candidate   */
+             /* check, so that fallback branch doesn't always run.             */
 zipCandidates = 'C:\msys64\usr\bin\zip.exe' ,
                 'C:\Program Files\Git\usr\bin\zip.exe' ,
                 'zip.exe'
@@ -77,7 +82,6 @@ do ci = 1 to words(zipCandidates)
 end
 if zipBin = '' then do
     /* Try PATH lookup via where */
-    noIn.0 = 0
     address system 'where zip.exe' with input stem noIn. output stem whereOut. error stem whereErr.
     if rc = 0 & whereOut.0 > 0 then zipBin = strip(whereOut.1)
 end
@@ -168,13 +172,20 @@ do bookDir over bookDirs
         iterate
     end
 
-    /* Collect book files (HTML + PDF only) */
+    /* Collect book files (HTML + PDF only). SysFileTree itself requires */
+    /* a literal stem as its output parameter -- that's fixed by the     */
+    /* RexxUtil API, not a style choice -- but the results are folded    */
+    /* into one .Array immediately after, rather than kept as three      */
+    /* separate stems with no reason to stay separate.                   */
     call SysFileTree bookDir'\*.htm',  htmFiles.,  'FOS'
     call SysFileTree bookDir'\*.html', htmlFiles., 'FOS'
     call SysFileTree bookDir'\*.pdf',  pdfFiles.,  'FOS'
+    bookFileList = .Array~new
+    do fi = 1 to htmFiles.0;  bookFileList~append(strip(htmFiles.fi));  end
+    do fi = 1 to htmlFiles.0; bookFileList~append(strip(htmlFiles.fi)); end
+    do fi = 1 to pdfFiles.0;  bookFileList~append(strip(pdfFiles.fi));  end
 
-    totalFiles = htmFiles.0 + htmlFiles.0 + pdfFiles.0
-    if totalFiles = 0 then do
+    if bookFileList~items = 0 then do
         call emit '  NOTE: no .htm/.html/.pdf files found -- skipping'
         iterate
     end
@@ -182,17 +193,9 @@ do bookDir over bookDirs
     /* Build combined file list for zip */
     call SysFileDelete outDir'\.__ziplist.tmp'
     call stream outDir'\.__ziplist.tmp', 'C', 'OPEN WRITE REPLACE'
-    do fi = 1 to htmFiles.0
-        call lineout outDir'\.__ziplist.tmp', strip(htmFiles.fi)
-        if verbose then call emit '  +' strip(htmFiles.fi)
-    end
-    do fi = 1 to htmlFiles.0
-        call lineout outDir'\.__ziplist.tmp', strip(htmlFiles.fi)
-        if verbose then call emit '  +' strip(htmlFiles.fi)
-    end
-    do fi = 1 to pdfFiles.0
-        call lineout outDir'\.__ziplist.tmp', strip(pdfFiles.fi)
-        if verbose then call emit '  +' strip(pdfFiles.fi)
+    do bf over bookFileList
+        call lineout outDir'\.__ziplist.tmp', bf
+        if verbose then call emit '  +' bf
     end
     call stream outDir'\.__ziplist.tmp', 'C', 'CLOSE'
 
@@ -202,17 +205,20 @@ do bookDir over bookDirs
     zipCmd = '"'zipBin'" -j -q 'overwriteFlag' "'outZip'" @"'outDir'\.__ziplist.tmp"'
     address system zipCmd with input stem noIn. output stem zOut. error stem zErr.
     zipRc = rc
+    /* zOut./zErr. are compelled to be stems by the WITH OUTPUT/ERROR    */
+    /* STEM clause itself; fold error lines into an array right after.  */
+    zErrList = .Array~new
+    do ei = 1 to zErr.0; zErrList~append(strip(zErr.ei)); end
 
     call SysFileDelete outDir'\.__ziplist.tmp'
 
     if zipRc = 0 then do
-        call emit '  OK:' totalFiles 'file(s) ->' outZip
+        call emit '  OK:' bookFileList~items 'file(s) ->' outZip
         created = created + 1
     end
     else do
         call emit '  ERROR: zip failed (rc='zipRc') for' bookName
-        if zErr.0 > 0 then
-            do ei = 1 to zErr.0; call emit '    STDERR:' strip(zErr.ei); end
+        do ei over zErrList; call emit '    STDERR:' ei; end
         errors = errors + 1
     end
 end
