@@ -65,11 +65,11 @@ end
 
 /* ── Locate info-zip ──────────────────────────────────────────────── */
 zipBin = ''
-noIn.0 = 0   /* empty input stem for every ADDRESS SYSTEM ... WITH INPUT STEM  */
-             /* call below -- must be set unconditionally, not just inside the */
-             /* PATH-lookup fallback: the per-book zip call further down needs */
-             /* it too, and zip.exe is normally found on the first candidate   */
-             /* check, so that fallback branch doesn't always run.             */
+noIn.0 = 0   /* empty input stem for the 'where zip.exe' ADDRESS SYSTEM call    */
+             /* below -- must be set unconditionally, not only when that       */
+             /* fallback branch runs, since zip.exe is normally found on the   */
+             /* first candidate check instead. (The per-book zip call further  */
+             /* down feeds its own file list via fileList., not this.)         */
 zipCandidates = 'C:\msys64\usr\bin\zip.exe' ,
                 'C:\Program Files\Git\usr\bin\zip.exe' ,
                 'zip.exe'
@@ -190,27 +190,32 @@ do bookDir over bookDirs
         iterate
     end
 
-    /* Build combined file list for zip */
-    call SysFileDelete outDir'\.__ziplist.tmp'
-    call stream outDir'\.__ziplist.tmp', 'C', 'OPEN WRITE REPLACE'
+    /* Feed the file list to zip via -@ (read filenames from stdin,      */
+    /* info-zip's real "read names from a list" mechanism) and WITH      */
+    /* INPUT STEM -- no temp file needed. The original bug used a        */
+    /* positional @filename argument instead of the -@ flag; that        */
+    /* silently matched nothing ("Nothing to do!", rc=12), which first   */
+    /* looked like a space-in-filename problem but wasn't. WITH INPUT    */
+    /* STEM needs a real stem, not the .Array, hence the copy below.     */
+    fileList. = ''
+    fileList.0 = bookFileList~items
+    fli = 0
     do bf over bookFileList
-        call lineout outDir'\.__ziplist.tmp', bf
+        fli = fli + 1
+        fileList.fli = bf
         if verbose then call emit '  +' bf
     end
-    call stream outDir'\.__ziplist.tmp', 'C', 'CLOSE'
 
     /* Run zip; -j junk paths (store filenames only, not full path) */
     overwriteFlag = ''
     if overwrite then overwriteFlag = '-u'
-    zipCmd = '"'zipBin'" -j -q 'overwriteFlag' "'outZip'" @"'outDir'\.__ziplist.tmp"'
-    address system zipCmd with input stem noIn. output stem zOut. error stem zErr.
+    zipCmd = '"'zipBin'" -j -q -@ 'overwriteFlag' "'outZip'"'
+    address system zipCmd with input stem fileList. output stem zOut. error stem zErr.
     zipRc = rc
     /* zOut./zErr. are compelled to be stems by the WITH OUTPUT/ERROR    */
     /* STEM clause itself; fold error lines into an array right after.  */
     zErrList = .Array~new
     do ei = 1 to zErr.0; zErrList~append(strip(zErr.ei)); end
-
-    call SysFileDelete outDir'\.__ziplist.tmp'
 
     if zipRc = 0 then do
         call emit '  OK:' bookFileList~items 'file(s) ->' outZip
