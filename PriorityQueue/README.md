@@ -47,7 +47,7 @@ ID|field2|field3|...
 
 ## Author
 
-Shmuel (Seymour J. Metz) (שְׁמוּאֵל בֵּן ל״ביש) <smetz3@gmu.edu>
+Shmuel (Seymour J. Metz) (שמואל בן לייביש ולאה) <smetz3@gmu.edu>
 
 ## License
 
