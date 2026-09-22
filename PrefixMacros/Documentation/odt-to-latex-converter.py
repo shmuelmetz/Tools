@@ -1,243 +1,162 @@
 #!/usr/bin/env python3
-"""One-off converter: Prefix.Macros.odt's content.xml -> the four LaTeX
-body fragments (intro/gml/hlasm/rexx) assembled into Prefix.Macros.tex.
+"""Convert Prefix.Macros.odt to Prefix.Macros.tex, targeting pfxmacros.sty.
 
-Not a general ODF-to-LaTeX tool -- it's shaped around this document's own
-structure: a flat description-list per section (GML), and per-command
-entries (HLASM, REXX) that pair a name with a "prefix area / text area"
-example table, expressed inconsistently across the source (sometimes
-nested in the list item, sometimes as sibling paragraphs/tables). Kept
-here for provenance and as a starting point if pfx.slides.odt or a
-similar document is ever converted the same way.
+Built on pandoc's own JSON AST (`pandoc -f odt -t json`), not a hand-
+rolled parser: pandoc already resolves the ODF's structure -- list
+nesting, which paragraphs belong to which bullet, table cell content --
+correctly, because it uses a real parser. This script's job is only to
+walk that well-typed tree and decide *document-specific* grouping (does
+a following Table/Para belong to the item just opened, per this
+document's own inconsistent authoring) and emit semantic macros
+(\\constant, \\variable, \\pfxcommand, the pfxexample environment) in
+place of raw \\textbf/\\textit/tabular.
 
-Usage: unzip content.xml from the .odt into this directory, then
-  python3 odt-to-latex-converter.py
-which writes intro.tex, gml.tex, hlasm.tex, rexx.tex and, via the
-adjoining assemble step, Prefix.Macros.tex.
+Usage:
+    pandoc -f odt -t json Prefix.Macros.odt -o Prefix.Macros.json
+    python3 odt-to-latex-converter.py Prefix.Macros.json > body.tex
 
 Author: Claude Code, 2026-09-22
 """
-import re, html
+import json
+import sys
 
-LIST_OPEN = re.compile(r'<text:list(?=[ >])')
+SPECIALS = str.maketrans({
+    '&': r'\&', '%': r'\%', '$': r'\$', '#': r'\#', '_': r'\_',
+    '{': r'\{', '}': r'\}', '~': r'\textasciitilde{}',
+    '^': r'\textasciicircum{}', '\\': r'\textbackslash{}',
+    '|': r'\textbar{}',
+})
 
-xml = open("content.xml", encoding="utf-8").read()
-i = xml.find("<office:body>")
-body = xml[i:xml.find("</office:body>")+len("</office:body>")]
-m = re.search(r'<office:text[^>]*>(.*)</office:text>', body, re.S)
-inner = m.group(1)
-inner = re.sub(r'<text:sequence-decls>.*?</text:sequence-decls>', '', inner, flags=re.S)
-
-SPECIALS = [
-    ('\\', r'\textbackslash{}'),
-    ('&', r'\&'),
-    ('%', r'\%'),
-    ('$', r'\$'),
-    ('#', r'\#'),
-    ('_', r'\_'),
-    ('{', r'\{'),
-    ('}', r'\}'),
-    ('~', r'\textasciitilde{}'),
-    ('^', r'\textasciicircum{}'),
-    # A raw "|" in OT1-encoded Computer Modern does not reliably render
-    # as a plain vertical bar; \textbar{} does.
-    ('|', r'\textbar{}'),
-]
 
 def esc(s):
-    s = html.unescape(s)
-    for a, b in SPECIALS:
-        s = s.replace(a, b)
-    return s
+    return s.translate(SPECIALS)
 
-def inline(s):
+
+def _inline(nodes):
+    """Render pandoc Inline nodes to LaTeX. Never strips: a Strong/Emph
+    run's own leading/trailing space (a real source quirk -- e.g. ".. "
+    bolded including its trailing space) is meaningful once it sits
+    inside a larger sentence, and stripping it here, one nesting level
+    too early, would silently swallow the word-space after it."""
     out = []
-    pos = 0
-    pat = re.compile(r'<text:span text:style-name="(T\d+)">(.*?)</text:span>|<text:tab/>|<text:s(?:\s+text:c="(\d+)")?/>')
-    for m in pat.finditer(s):
-        plain = re.sub('<[^>]+>', '', s[pos:m.start()])
-        out.append(esc(plain))
-        whole = m.group(0)
-        if m.group(1) is not None:
-            style, txt = m.group(1), m.group(2)
-            txt = esc(re.sub('<[^>]+>', '', txt))
-            if style == 'T1':
-                out.append(r'\textbf{%s}' % txt)
-            elif style in ('T4', 'T5'):
-                out.append(r'\textit{%s}' % txt)
-            else:
-                out.append(txt)
-        elif whole.startswith('<text:tab'):
-            out.append(r'\hspace{1em}')
+    for n in nodes:
+        t = n['t']
+        if t == 'Str':
+            out.append(esc(n['c']))
+        elif t == 'Space':
+            out.append(' ')
+        elif t == 'Strong':
+            inner = _inline(n['c'])
+            out.append(r'\constant{%s}' % inner if inner.strip() else '')
+        elif t == 'Emph':
+            inner = _inline(n['c'])
+            out.append(r'\variable{%s}' % inner if inner.strip() else '')
+        elif t == 'Code':
+            out.append(esc(n['c'][1]))
+        elif t in ('SoftBreak', 'LineBreak'):
+            out.append(' ')
         else:
-            n = int(m.group(3) or 1)
-            out.append(r'\ ' * n)
-        pos = m.end()
-    out.append(esc(re.sub('<[^>]+>', '', s[pos:])))
-    result = ''.join(out).strip()
-    result = result.replace(r'\textbf{}', '').replace(r'\textit{}', '')
-    return result
+            # Anything unhandled: fall through on its plain text content
+            # if it has one, rather than silently dropping it.
+            out.append(esc(_plain_text([n])))
+    return ''.join(out)
 
-def parse_p(p_xml):
-    m = re.match(r'<text:p[^>]*>(.*)</text:p>', p_xml, re.S)
-    return inline(m.group(1)) if m else ''
 
-def parse_table(t_xml):
-    rows = re.findall(r'<table:table-row\b.*?</table:table-row>', t_xml, re.S)
-    out = [r'\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}', r'\hline']
-    for r in rows:
-        cells = re.findall(r'<table:table-cell\b.*?</table:table-cell>', r, re.S)
+def inline(nodes):
+    """Render a list of pandoc Inline nodes to one LaTeX string, with
+    leading/trailing whitespace trimmed once, at this outer level."""
+    return _inline(nodes).strip()
+
+
+def _plain_text(nodes):
+    out = []
+    for n in nodes:
+        if n['t'] == 'Str':
+            out.append(n['c'])
+        elif n['t'] == 'Space':
+            out.append(' ')
+        elif 'c' in n and isinstance(n['c'], list):
+            out.append(_plain_text(n['c']))
+    return ''.join(out)
+
+
+def block_text(block):
+    """Render one Para/Plain block to a LaTeX string."""
+    if block['t'] in ('Para', 'Plain'):
+        return inline(block['c'])
+    return ''
+
+
+def item_paragraphs(item_blocks):
+    """A BulletList item's content is a list of Blocks (almost always
+    Para here). Return their rendered text, one per paragraph."""
+    return [block_text(b) for b in item_blocks if b['t'] in ('Para', 'Plain')]
+
+
+def render_table(tbl):
+    """tbl['c'] = [Attr, Caption, ColSpecs, TableHead, [TableBody...], TableFoot]."""
+    _, _, _, thead, tbodies, _ = tbl['c']
+    rows = list(thead[1])  # header rows (usually none here)
+    for tbody in tbodies:
+        rows.extend(tbody[3])
+    out = [r'\begin{pfxexample}']
+    for row in rows:
+        cells = row[1]
         texts = []
-        for c in cells:
-            ps = re.findall(r'<text:p[^>]*>.*?</text:p>', c, re.S)
-            texts.append(' '.join(parse_p(p) for p in ps))
+        for cell in cells:
+            blocks = cell[4]
+            texts.append(' '.join(block_text(b) for b in blocks if block_text(b)))
         while len(texts) < 2:
             texts.append('')
-        out.append('%s & %s \\\\' % (texts[0], texts[1]))
-        out.append(r'\hline')
-    out.append(r'\end{tabular}')
+        out.append(r'\pfxrow{%s}{%s}' % (texts[0], texts[1]))
+    out.append(r'\end{pfxexample}')
     return '\n'.join(out)
 
-def tokenize(xml_frag):
-    tokens = []
-    pos = 0
-    n = len(xml_frag)
-    while pos < n:
-        m = re.match(r'\s*', xml_frag[pos:])
-        pos += m.end()
-        if pos >= n:
-            break
-        if xml_frag[pos:pos+7] == '<text:p':
-            close_self = re.match(r'<text:p[^>]*/>', xml_frag[pos:])
-            if close_self:
-                tokens.append(('p', close_self.group(0)))
-                pos += close_self.end()
-                continue
-            end = xml_frag.index('</text:p>', pos) + len('</text:p>')
-            tokens.append(('p', xml_frag[pos:end]))
-            pos = end
-        elif LIST_OPEN.match(xml_frag, pos):
-            depth = 0
-            j = pos
-            while True:
-                mno = LIST_OPEN.search(xml_frag, j)
-                no = mno.start() if mno else -1
-                nc = xml_frag.find('</text:list>', j)
-                if no != -1 and no < nc:
-                    depth += 1
-                    j = xml_frag.index('>', no) + 1
-                else:
-                    depth -= 1
-                    j = nc + len('</text:list>')
-                    if depth == 0:
-                        break
-            tokens.append(('list', xml_frag[pos:j]))
-            pos = j
-        elif xml_frag[pos:pos+12] == '<table:table':
-            end = xml_frag.index('</table:table>', pos) + len('</table:table>')
-            tokens.append(('table', xml_frag[pos:end]))
-            pos = end
-        else:
-            end = xml_frag.index('>', pos) + 1
-            pos = end
-    return tokens
 
-def list_items(list_xml):
-    inner = re.sub(r'^<text:list[^>]*>', '', list_xml)
-    inner = re.sub(r'</text:list>$', '', inner)
-    items = []
-    pos = 0
-    n = len(inner)
-    while pos < n:
-        s = inner.find('<text:list-item', pos)
-        if s == -1:
-            break
-        depth = 0
-        j = s
-        while True:
-            no = inner.find('<text:list-item', j)
-            nc = inner.find('</text:list-item>', j)
-            if no != -1 and no < nc:
-                depth += 1
-                j = inner.index('>', no) + 1
-            else:
-                depth -= 1
-                j = nc + len('</text:list-item>')
-                if depth == 0:
-                    break
-        items.append(inner[s:j])
-        pos = j
-    return items
+def render_nested_itemize(sub_items):
+    lines = [r'\begin{itemize}']
+    for it in sub_items:
+        paras = item_paragraphs(it)
+        label = paras[0] if paras else ''
+        body = ' '.join(paras[1:]).strip()
+        lines.append(r'\item %s%s' % (label, (': ' + body) if body else ''))
+    lines.append(r'\end{itemize}')
+    return '\n'.join(lines)
 
-def parse_item(item_xml):
-    inner = re.sub(r'^<text:list-item[^>]*>', '', item_xml)
-    inner = re.sub(r'</text:list-item>$', '', inner)
-    toks = tokenize(inner)
-    paras = []
-    nested = None
-    for kind, x in toks:
-        if kind == 'p':
-            paras.append(parse_p(x))
-        elif kind == 'list':
-            nested = x
-    return paras, nested
 
-body_tokens = tokenize(inner)
-print(len(body_tokens), "top-level tokens")
-for k, x in body_tokens[:10]:
-    print(k, x[:90].replace('\n', ' '))
+def find_nested_list(item_blocks):
+    for b in item_blocks:
+        if b['t'] == 'BulletList':
+            return b['c']
+    return None
 
-# ---- Full document generation ----
 
-def render_item_body(paras, nested):
-    """Render the description-list body for one item: joined paragraphs,
-    plus a nested itemize if present."""
-    parts = []
-    text = ' '.join(p for p in paras if p).strip()
-    if text:
-        parts.append(text)
-    if nested is not None:
-        sub_items = list_items(nested)
-        lines = [r'\begin{itemize}']
-        for si in sub_items:
-            sp, snested = parse_item(si)
-            label = sp[0] if sp else ''
-            boldlabel = label if r'\textbf{' in label else r'\textbf{%s}' % label
-            body = ' '.join(sp[1:]).strip()
-            lines.append(r'\item %s%s' % (boldlabel, (': ' + body) if body else ''))
-        lines.append(r'\end{itemize}')
-        parts.append('\n'.join(lines))
-    return '\n'.join(parts)
+TRANSITION_MARKERS = ('GLOBALV', 'The prefix commands for', 'Prefix macros for')
 
-def strip_leading_hspace(s):
-    return re.sub(r'^(\\hspace\{1em\})+', '', s).strip()
 
-def render_section(tokens):
+def is_transition(text):
+    return any(m in text for m in TRANSITION_MARKERS)
+
+
+def render_section(blocks):
     out = []
     in_desc = [False]
-    pending = []  # body pieces (str) for the currently-open \item
+    pending = []
+    current_label = [None]
 
     def open_desc():
         if not in_desc[0]:
             out.append(r'\begin{description}')
             in_desc[0] = True
 
-    def flush_item(boldlabel):
+    def flush_item(label):
         parts = [p for p in pending if p]
-        # The first piece (the description sentence, if any) runs inline
-        # right after the label, matching the two-column look. Anything
-        # after that -- an example table, a nested itemize -- gets its
-        # own paragraph (a blank line): `tabular` does not force a line
-        # break on its own, and without one it embeds inline after the
-        # description text and visually fragments across line wraps.
         if parts:
             body = parts[0] + ''.join('\n\n' + p for p in parts[1:])
         else:
             body = ''
-        out.append(r'\item[{%s}] %s' % (boldlabel, body))
+        out.append(r'\item[{\pfxcommand{%s}}] %s' % (label, body))
         pending.clear()
-
-    current_label = [None]
 
     def close_pending():
         if current_label[0] is not None:
@@ -250,108 +169,92 @@ def render_section(tokens):
             out.append(r'\end{description}')
             in_desc[0] = False
 
-    for k, x in tokens:
-        if k == 'p':
-            txt = parse_p(x) if '</text:p>' in x else ''
+    for block in blocks:
+        t = block['t']
+        if t in ('Para', 'Plain'):
+            txt = block_text(block)
             if not txt:
                 continue
-            is_transition = ('GLOBALV' in txt and 'indentation' in txt) or \
-                'The prefix commands for' in txt or 'Prefix macros for' in txt
-            if current_label[0] is not None and not is_transition:
-                # a continuation paragraph belonging to the open item.
-                # Most are tab-indented in the source; one (the "nnRI"
-                # description) is not, an authoring slip -- so section
-                # transitions are identified positively by their fixed
-                # wording instead of by the tab's presence.
-                pending.append(strip_leading_hspace(txt))
+            if current_label[0] is not None and not is_transition(txt):
+                pending.append(txt)
             else:
                 close_desc()
                 out.append(txt)
                 out.append('')
-        elif k == 'list':
-            items = list_items(x)
-            # Drop a leading item whose label is pure whitespace/empty: a
-            # spurious blank bullet in the source (e.g. before "DO FR"),
-            # not a real entry.
-            while items:
-                p0chk, _ = parse_item(items[0])
-                if p0chk and p0chk[0].strip():
-                    break
+        elif t == 'BulletList':
+            items = block['c']
+            # Drop a leading item that is entirely empty: a spurious
+            # blank bullet in the source (e.g. before "DO FR").
+            while items and not any(item_paragraphs(items[0])):
                 items = items[1:]
             if not items:
                 continue
             open_desc()
             close_pending()
-            # A 2-item list whose second item reads like a description
-            # ("Insert ...") is really one command's name + description
-            # split across two bullets (e.g. "CASEE or CASEN").
             if len(items) == 2:
-                p0, n0 = parse_item(items[0])
-                p1, n1 = parse_item(items[1])
+                p0 = item_paragraphs(items[0])
+                p1 = item_paragraphs(items[1])
                 lbl1 = p1[0] if p1 else ''
-                if lbl1.startswith('Insert ') or lbl1.startswith('\\textbf{Insert '):
-                    label = p0[0] if p0 else ''
-                    current_label[0] = label if r'\textbf{' in label else r'\textbf{%s}' % label
-                    pending.append(' '.join([lbl1] + p1[1:]).strip())
-                    if n0 is not None:
-                        pending.append(render_item_body([], n0))
+                if lbl1.startswith('Insert '):
+                    close_pending()
+                    current_label[0] = p0[0] if p0 else ''
+                    pending.append(' '.join(p1).strip())
+                    nested = find_nested_list(items[0])
+                    if nested:
+                        pending.append(render_nested_itemize(nested))
                     continue
-            # Every item except the last is self-contained and flushed
-            # immediately; the last item stays open so a following
-            # description paragraph and/or example table (siblings in
-            # the source, not nested in the list) can attach to it.
             for it in items[:-1]:
-                paras, nested = parse_item(it)
+                paras = item_paragraphs(it)
                 label = paras[0] if paras else ''
-                boldlabel = label if r'\textbf{' in label else r'\textbf{%s}' % label
-                own_body = render_item_body(paras[1:], nested)
-                out.append(r'\item[{%s}] %s' % (boldlabel, own_body))
-            paras, nested = parse_item(items[-1])
+                nested = find_nested_list(it)
+                parts = []
+                if len(paras) > 1:
+                    parts.append(' '.join(paras[1:]).strip())
+                if nested:
+                    parts.append(render_nested_itemize(nested))
+                out.append(r'\item[{\pfxcommand{%s}}] %s' % (label, '\n\n'.join(parts)))
+            paras = item_paragraphs(items[-1])
             label = paras[0] if paras else ''
-            current_label[0] = label if r'\textbf{' in label else r'\textbf{%s}' % label
-            own_body = render_item_body(paras[1:], nested)
-            if own_body:
-                pending.append(own_body)
-        elif k == 'table':
+            current_label[0] = label
+            nested = find_nested_list(items[-1])
+            if len(paras) > 1:
+                pending.append(' '.join(paras[1:]).strip())
+            if nested:
+                pending.append(render_nested_itemize(nested))
+        elif t == 'Table':
             if current_label[0] is None:
-                # Defensive: a table with no open item to attach to would
-                # otherwise sit in `pending` and leak into whatever item
-                # opens next. Should not happen once source anomalies
-                # (e.g. a spurious blank bullet) are filtered above.
                 pending.clear()
-            pending.append(parse_table(x))
+            pending.append(render_table(block))
     close_desc()
     return '\n'.join(out)
 
-# Split body_tokens into the three named sections by locating the
-# section-introduction paragraphs (identified by their exact text).
-body_tokens = tokenize(inner)
 
-def find_marker(tokens, substr):
-    for i, (k, x) in enumerate(tokens):
-        if k == 'p' and '</text:p>' in x and substr in parse_p(x):
+def find_marker(blocks, substr):
+    for i, b in enumerate(blocks):
+        if b['t'] == 'Para' and substr in block_text(b):
             return i
     return None
 
-i_gml = find_marker(body_tokens, 'The prefix commands for GML are:')
-i_hlasm = find_marker(body_tokens, 'Prefix macros for High Level Assembler:')
-i_rexx = find_marker(body_tokens, 'Prefix macros for REXX:')
 
-intro_tokens = body_tokens[:i_gml]
-gml_tokens = body_tokens[i_gml+1:i_hlasm]
-hlasm_tokens = body_tokens[i_hlasm+1:i_rexx]
-rexx_tokens = body_tokens[i_rexx+1:]
+def main():
+    doc = json.load(open(sys.argv[1], encoding='utf-8'))
+    blocks = doc['blocks']
 
-intro_body = render_section(intro_tokens)
-gml_body = render_section(gml_tokens)
-hlasm_body = render_section(hlasm_tokens)
-rexx_body = render_section(rexx_tokens)
+    intro_end = find_marker(blocks, 'The prefix commands for GML are:')
+    hlasm_start = find_marker(blocks, 'Prefix macros for High Level Assembler:')
+    rexx_start = find_marker(blocks, 'Prefix macros for REXX:')
 
-open("intro.tex", "w", encoding="utf-8").write(intro_body)
-open("gml.tex", "w", encoding="utf-8").write(gml_body)
-open("hlasm.tex", "w", encoding="utf-8").write(hlasm_body)
-open("rexx.tex", "w", encoding="utf-8").write(rexx_body)
-print("wrote intro/gml/hlasm/rexx .tex fragments")
-print("gml body length:", len(gml_body))
-print("hlasm body length:", len(hlasm_body))
-print("rexx body length:", len(rexx_body))
+    intro = '\n\n'.join(block_text(b) for b in blocks[:intro_end] if block_text(b))
+    gml = render_section(blocks[intro_end + 1:hlasm_start])
+    hlasm = render_section(blocks[hlasm_start + 1:rexx_start])
+    rexx = render_section(blocks[rexx_start + 1:])
+
+    open('intro.tex', 'w', encoding='utf-8', newline='\n').write(intro)
+    open('gml.tex', 'w', encoding='utf-8', newline='\n').write(gml)
+    open('hlasm.tex', 'w', encoding='utf-8', newline='\n').write(hlasm)
+    open('rexx.tex', 'w', encoding='utf-8', newline='\n').write(rexx)
+    print('wrote intro/gml/hlasm/rexx .tex', file=sys.stderr)
+
+
+if __name__ == '__main__':
+    main()

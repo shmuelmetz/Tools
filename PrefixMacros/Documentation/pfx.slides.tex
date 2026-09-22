@@ -7,6 +7,7 @@
 % large.cardinal-style shirts.
 \documentclass[11pt]{beamer}
 \setbeamertemplate{navigation symbols}{}
+\usepackage{pfxmacros}
 
 \title{Prefix Macros for THE and XEDIT}
 \author{Shmuel (Seymour J.) Metz}
@@ -60,16 +61,16 @@
 
 \begin{frame}{How it works}
 \begin{itemize}
-\item Requires a \textbf{SET PREFIX SYNONYM} for each command
+\item Requires a \constant{SET PREFIX SYNONYM} for each command
   \begin{itemize}
   \item Typically done in profile
   \end{itemize}
-\item Makes heavy use of \textbf{SET PENDING}
+\item Makes heavy use of \constant{SET PENDING}
 \item Defines and make heavy use of
   \begin{itemize}
-  \item \textbf{..}
-  \item \textbf{RI}
-  \item \textbf{RIC}
+  \item \constant{..}
+  \item \constant{RI}
+  \item \constant{RIC}
   \end{itemize}
 \item Common housekeeping to, e.g., extract an optional count parameter
 \end{itemize}
