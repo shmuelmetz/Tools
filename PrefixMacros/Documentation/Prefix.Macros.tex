@@ -1,0 +1,443 @@
+% Build: pdflatex Prefix.Macros.tex
+%
+% Converted from Prefix.Macros.odt (LibreOffice Writer) by a
+% purpose-built ODF-to-LaTeX converter that walks the document's
+% content.xml in order, preserving paragraph/list/table structure.
+%
+% The description-list left margin (2.2cm) matches the first column
+% width of the prefix-area/text-area example tables throughout, so a
+% command's name and a table row's prefix command line up at the same
+% indent, and both description text and table text-area content start
+% at the same following column.
+\documentclass[11pt]{article}
+\usepackage[letterpaper,margin=1in]{geometry}
+\usepackage{array}
+\usepackage{enumitem}
+\setlist[description]{leftmargin=2.2cm, labelsep=0.3cm, style=nextline, font=\normalfont\bfseries}
+
+\title{Prefix Macros for THE and XEDIT}
+\author{Shmuel (Seymour J.) Metz}
+\date{}
+
+\begin{document}
+\maketitle
+
+To use these macros, you must issue appropriate \textbf{SET PREFIX SYNONYM} commands, normally from a profile specific to the file type. With the exception of \textbf{..}, the command may be preceded or followed by a repetition count prior to the first option. In general, these commands insert templates for control structures with pending commands to simplify subsequent input. They set the cursor position and indentation appropriately for the line preceding the insert and for the type of insert. The following documentation uses case to show minimum truncation, e.g., ASMLe may be entered as either ASMLE or as ASML. \textbf{Bold} text indicates a constant string and \textit{italic} text indicates a variable.
+
+Note that each XEDIT file does SET PENDING commands for the macros \textbf{..}, \textbf{RI} and \textbf{RIC}, but that you are also allowed to key them in yourself. You can use a GLOBALV to override some indentation defaults. The documentation for each prefix command shows any command set pending prior to the inserted text.
+
+\textbf{RI} and \textbf{RIC} are slightly more complex. \textbf{RIC} with no user input deletes itself.; otherwise the command does a \textbf{SET PENDING .}. and inserts a blank line.. A repeated \textbf{RI} or \textbf{RIC}, e.g., \textbf{3RI}, behaves differently for the first line and subsequent lines. for the first line of cc\textbf{RI} or cc\textbf{RIC}, it does a \textbf{SET PENDING RIC}cc on the inserted blank line; for subsequent lines it does a \textbf{SET PENDING ..}.
+
+The LC and \textbf{UC} commands translate to lower and upper case. By default they translate everything within the current zone, but an operand of \textbf{C} requests translation only up to the cursor column and a numeric operand requests translation only up to the specified column.
+
+Prefix macros for GML are slightly different; you define the single synonym : the first non-numeric operand is the command, e.g., \textbf{:H1} inserts a level one heading.
+
+\section*{Prefix macros for GML}
+
+\begin{description}
+\item[{\textbf{BIB}}] Insert bibliography entry: :BIB ID= name, initials :CIT title :ECIT.
+\item[{\textbf{BIBId}}] :BIBID REFID=
+\item[{\textbf{BIBRef}}] :BIBREF REFID=. PP='.-.'
+\item[{\textbf{BL}}] :BL :EBL
+\item[{\textbf{BOX}}] Insert box :BOX :EBOX
+\item[{\textbf{CITE}}] Insert title citation :CITE :ECITE
+\item[{\textbf{DD}}] Insert definition description
+\item[{\textbf{DDH}}] Insert definition description header
+\item[{\textbf{DIST}}] 
+\item[{\textbf{DISTRib}}] 
+\item[{\textbf{DL}}] Insert definition list
+\item[{\textbf{DT}}] Insert definition term
+\item[{\textbf{DTH}}] Insert definition term header
+\item[{\textbf{EN}}] 
+\item[{\textbf{FIG}}] Insert figure
+\item[{\textbf{FIGId}}] 
+\item[{\textbf{FIGRef}}] Insert figure reference
+\item[{\textbf{FN}}] Insert footnote
+\item[{\textbf{FNREf}}] Insert footnote reference
+\item[{\textbf{GD}}] Insert glossary definition
+\item[{\textbf{GDOC}}] Insert general document
+\item[{\textbf{GL}}] Insert glossary list
+\item[{\textbf{GT}}] Insert glossary term
+\item[{\textbf{H}}] Insert heading level n, specified as :Hn, n=1-6
+\item[{\textbf{HDRef}}] Insert heading reference
+\item[{\textbf{HP}}] highlighted phrase n, specified as :Hpn, n=0-3
+\item[{\textbf{I}}] Insert index entry level n, specified as :In, n=1-3
+\item[{\textbf{IH}}] Insert index header level n, specified as :In, n=1-3
+\item[{\textbf{LETter}}] 
+\item[{\textbf{LI}}] Insert list item
+\item[{\textbf{LIH}}] 
+\item[{\textbf{LQ}}] Insert long quote
+\item[{\textbf{MEMo}}] 
+\item[{\textbf{NOTE}}] Insert note
+\item[{\textbf{OL}}] Insert ordered list
+\item[{\textbf{P}}] Insert paragraph
+\item[{\textbf{PSC}}] Insert process specific control
+\item[{\textbf{Q}}] Insert quote
+\item[{\textbf{SL}}] Insert simple list
+\item[{\textbf{TAB}}] 
+\item[{\textbf{TABId}}] 
+\item[{\textbf{TABRef}}] 
+\item[{\textbf{UL}}] Insert unordered list
+\item[{\textbf{XMP}}] Insert example
+\end{description}
+
+\section*{Prefix macros for High Level Assembler}
+
+\textbf{GLOBALV PFXHLASM} variables override default indentation.
+
+\begin{description}
+\item[{\textbf{Indent=CASE}=2}] 
+\item[{\textbf{Indent=CASENTRY}=2}] 
+\item[{\textbf{Indent\_DO}=2}] 
+\item[{\textbf{Indent\_IF}=2}] 
+\item[{\textbf{Indent\_SEARCH}=2}] 
+\item[{\textbf{Indent\_SELECT}=2}] 
+\item[{\textbf{Indent\_WHEN}=2}] 
+\end{description}
+The prefix commands for \ the structured programming macros of the High Level Assembler Toolkit are:
+
+\begin{description}
+\item[{\textbf{..}}] Auto-delete line if no user input
+\item[{\textbf{ASMLea}}] Insert ASMLEAVE
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & ASMLEAVE label \\
+\hline
+RI &  \\
+\hline
+\end{tabular}
+\item[{\textbf{CASE}}] Insert CASE
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & CASE ? \\
+\hline
+RI & \ \ \textbf{Opcod ,} \\
+\hline
+\end{tabular}
+\item[{\textbf{CASEE or CASEN}}] Insert CASENTRY block
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+ & CASENTRY R?,POWER=?,VECTOR=B \\
+\hline
+.. & \ \ \textbf{CASE} \\
+\hline
+RI & \ \ \ \ \textbf{opcod ,} \\
+\hline
+ & ENDCASE , \\
+\hline
+\end{tabular}
+\item[{\textbf{DO}}] Insert DO ONCE block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & DO ONCE \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+ & ENDDO , \\
+\hline
+\end{tabular}
+\item[{\textbf{1DO}\textit{nn}}] Insert DO FROM Rnn block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & DO FROM=(R\textit{nn}) \\
+\hline
+RI & \ \ \textbf{opcod} \\
+\hline
+ & ENDDO , \\
+\hline
+\end{tabular}
+\item[{\textbf{DO By}}] Insert DO FROM BY block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & DO FROM=(R?),BY=(R?) \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+ & ENDDO , \\
+\hline
+\end{tabular}
+\item[{\textbf{DO B}n}] Insert DO FROM BY Rn block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & DO FROM=(R?),BY=(R\textit{n}) \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+ & ENDDO , \\
+\hline
+\end{tabular}
+\item[{\textbf{DO FO or DO In}}] Insert DO forever block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & DO INF \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+ & ENDDO , \\
+\hline
+\end{tabular}
+\item[{\textbf{DO FR}}] Insert DO FROM block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & DO FROM=(R?) \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+ & ENDDO , \\
+\hline
+\end{tabular}
+\item[{\textbf{DO Un}}] Insert DO UNTIL block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & DO UNTIL=if\_option \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+ & ENDDO , \\
+\hline
+\end{tabular}
+\item[{\textbf{DO Wh}}] Insert DO WHILE block
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & DO WHILE=if\_option \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+ & ENDDO , \\
+\hline
+\end{tabular}
+\item[{\textbf{DOEXi}}] Insert DOEXIT
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & DOEXIT test \\
+\hline
+RI &  \\
+\hline
+\end{tabular}
+\item[{\textbf{ELSE}}] Insert ELSE
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & ELSE , \\
+\hline
+RI & \ \ opcod , \\
+\hline
+\end{tabular}
+\item[{\textbf{ELSEI}}] Insert ELSEIF
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & ELSEIF test \\
+\hline
+RI & \ \ opcod \\
+\hline
+\end{tabular}
+\item[{\textbf{EXITI}}] Insert EXITIF
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & EXITIF if\_options \\
+\hline
+RI & \ \ opcod , \\
+\hline
+.. & ORELSE , \\
+\hline
+RI & \ \ opcod , \\
+\hline
+\end{tabular}
+\item[{\textbf{IF}}] Insert IF:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & IF \textit{operand} \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+.. & ELSEIF test, \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+.. & ELSE , \\
+\hline
+RI & \textbf{opcod ,} \\
+\hline
+ & ENDIF , \\
+\hline
+\end{tabular}
+\item[{\textbf{IF option}}] \begin{itemize}
+\item \textbf{Omitted}: Insert period for tabbing
+\item \textbf{E}, \textbf{EQ}, \textbf{GT}, \textbf{H}, \textbf{L}, \textbf{LE}, \textbf{LT}, \textbf{M}, \textbf{N}, \textbf{NE}, \textbf{NH}, \textbf{NL}, \textbf{NM}, \textbf{NO}, \textbf{NP}, \textbf{NZ}, \textbf{O}, or \textbf{Z}: Condition code operand is \textbf{(}\textit{option}\textbf{)}
+\item \textbf{Numeric from 0 to 15}: Condition code operand is \textbf{(}\textit{option}\textbf{)}
+\item \textbf{CC}: Condition code operand is \textbf{CC=.}
+\end{itemize}
+\item[{\textbf{LC} [\textbf{C}\textbar{}column\#]}] Lower case
+\item[{\textbf{\textit{nn}RI}}] Repeat insert; set pending \textbf{.. }and insert (nn < 100)
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & Blank line 1 \\
+\hline
+.. & ... \\
+\hline
+\textit{nn}RIC & Blank line \textit{nn} \\
+\hline
+\end{tabular}
+\item[{\textbf{\textit{nn}RIC}}] Repeat insert conditional; auto-delete if RIC on empty line, otherwise set pending \textbf{.. }and insert
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & Blank line 1 \\
+\hline
+.. & ... \\
+\hline
+\textit{nn}RIC & Blank line \textit{nn} \\
+\hline
+\end{tabular}
+\item[{\textbf{SEArc or STRTS}}] Insert search block
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & STRTSRCH do\_options \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+.. & EXITIF if\_options \\
+\hline
+RI & \ \ \textbf{opcod ,} \\
+\hline
+.. & ORELSE \ , \\
+\hline
+.. & \ \ \textbf{opcod ,} \\
+\hline
+RI & ENDLOOP \ , \\
+\hline
+.. & \ \ \textbf{opcod ,} \\
+\hline
+ & ENDSRCH \ , \\
+\hline
+\end{tabular}
+\item[{\textbf{SELect}}] Insert SELECT block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+ & SELECT \\
+\hline
+.. & \ \ \textbf{WHEN IF\_test} \\
+\hline
+RIC & \ \ \ \ \textbf{opcod ,} \\
+\hline
+ & \ \ OTHRWISE , \\
+\hline
+RIC & \ \ \ \ \textbf{opcod ,} \\
+\hline
+ & ENDSEL , \\
+\hline
+\end{tabular}
+\item[{\textbf{STAr}}] Put continuation character in column 72
+\item[{\textbf{UC [C\textbar{}column\#]}}] Upper case
+\item[{\textbf{UNSTa}}] Remove continuation character from column 72
+\item[{\textbf{WHEN}}] Insert WHEN clause:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & WHEN IF\_test \\
+\hline
+RIC & \ \ \textbf{opcod ,} \\
+\hline
+ & \ \ \ \textbf{end} \\
+\hline
+\end{tabular}
+\end{description}
+
+\section*{Prefix macros for REXX}
+
+\textbf{GLOBALV PFXREXX} variables override default indentation.
+
+\begin{description}
+\item[{\textbf{Indent\_DO}=3}] 
+\item[{\textbf{Indent\_IF}=3}] 
+\item[{\textbf{Indent\_label = 3}}] 
+\item[{\textbf{Indent\_SELECT}=1}] 
+\item[{\textbf{Indent\_WHEN}=2}] 
+\end{description}
+The prefix commands for REXX are:
+
+\begin{description}
+\item[{\textbf{..}}] Auto-deleted if no user input
+\item[{\textbf{DO}}] Insert DO block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & do \\
+\hline
+RI &  \\
+\hline
+ & \ \ \ \textbf{end} \\
+\hline
+\end{tabular}
+\item[{\textbf{IF}}] Insert IF:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & if . then do \\
+\hline
+RI &  \\
+\hline
+ & \ \ \ \textbf{end} \\
+\hline
+ & else do \\
+\hline
+RI &  \\
+\hline
+ & \ \ \ \textbf{end} \\
+\hline
+\end{tabular}
+\item[{\textbf{RI}}] Repeat insert
+\item[{\textbf{RIC}}] Repeat insert conditional
+\item[{\textbf{SELect}}] Insert SELECT block:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+ & select \\
+\hline
+.. & \ \ \ \textbf{when . then do} \\
+\hline
+RIC &  \\
+\hline
+ & \ \ \ \ \ \ \textbf{end} \\
+\hline
+ & \ \ \ \textbf{otherwise do} \\
+\hline
+RIC &  \\
+\hline
+ & \ \ \ \ \ \ \textbf{end} \\
+\hline
+ & \ \ \ \textbf{end} \\
+\hline
+\end{tabular}
+\item[{\textbf{WHEN}}] Insert WHEN clause:
+
+\begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}}
+\hline
+.. & when . then do \\
+\hline
+RIC &  \\
+\hline
+ & \ \ \ \textbf{end} \\
+\hline
+\end{tabular}
+\end{description}
+
+\end{document}
