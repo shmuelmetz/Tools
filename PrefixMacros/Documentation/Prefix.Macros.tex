@@ -1,10 +1,10 @@
 % Build: pandoc -f odt -t json Prefix.Macros.odt -o Prefix.Macros.json
-%       python3 odt-to-latex-converter.py Prefix.Macros.json
-%       python3 assemble.py
+%       rexx odt-to-latex-converter.rex Prefix.Macros.json
+%       rexx assemble.rex
 %       pdflatex Prefix.Macros.tex
 %
 % Converted from Prefix.Macros.odt by walking pandoc's own JSON AST
-% (odt-to-latex-converter.py) -- pandoc resolves the ODF's structure
+% (odt-to-latex-converter.rex) -- pandoc resolves the ODF's structure
 % correctly, using a real parser; this script only decides this
 % document's own grouping quirks and emits semantic markup (pfxmacros.sty)
 % in place of raw \textbf/\textit/tabular.
