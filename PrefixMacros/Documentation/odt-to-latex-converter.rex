@@ -117,7 +117,7 @@ exit
 /* ---- inline rendering ---- */
 
 /* Never strips: a Strong/Emph run's own leading/trailing space (a real
- * source quirk -- e.g. ".. " bolded including its trailing space) is
+ * source quirk -- e.g., ".. " bolded including its trailing space) is
  * meaningful once it sits inside a larger sentence, and stripping it
  * here, one nesting level too early, would silently swallow the
  * word-space after it. Only the outer caller (inline()) strips.
