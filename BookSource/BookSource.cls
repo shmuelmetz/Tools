@@ -5,7 +5,7 @@
  * Abstract BookSource hierarchy for book inventory/import/export, covering
  * three kinds of sources through one common interface:
  *   - DirectorySource  -- an already-unpacked tree of book folders
- *   - ZipArchiveSource -- a single .zip archive (e.g. a downloaded Book-CD)
+ *   - ZipArchiveSource -- a single .zip archive (e.g., a downloaded Book-CD)
  *   - URLSource        -- a remote catalog of bookId -> URL
  *
  * No source-specific interface -- every caller uses the same three methods
@@ -125,7 +125,7 @@
 
 /* ------------------------------------------------------------------ */
 ::CLASS ZipArchiveSource SUBCLASS BookSource
-    /* Wraps a single .zip archive (e.g. a downloaded Book-CD) as a source.
+    /* Wraps a single .zip archive (e.g., a downloaded Book-CD) as a source.
        Entries are grouped into books by their top-level path segment
        (BookFolder/chapter1.html -> book id "BookFolder"). */
 

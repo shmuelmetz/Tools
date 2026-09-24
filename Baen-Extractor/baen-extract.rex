@@ -34,7 +34,7 @@ call RxFuncAdd 'SysLoadFuncs', 'REXXUTIL', 'SysLoadFuncs'
 call SysLoadFuncs
 
 /* Dual-mode argument parsing. CALL (path) a, b, c, d, e (this file's    */
-/* preferred invocation, e.g. from session-2026-05-02.rex) gives         */
+/* preferred invocation, e.g., from session-2026-05-02.rex) gives         */
 /* genuinely separate ARG(n) values -- USE ARG's comma-separated         */
 /* defaults are correct REXX-to-REXX call semantics for that case.       */
 /* Invoked from a raw OS command line instead (rexx baen-extract.rex     */

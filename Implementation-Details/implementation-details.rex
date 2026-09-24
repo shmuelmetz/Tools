@@ -13,13 +13,13 @@
  *
  * PARSE SOURCE is three space-delimited tokens (the third is the
  * remainder of the string, so it survives a path containing spaces):
- *   1. system name        e.g. WindowsNT, UNIX, OS2, TSO, CMS
+ *   1. system name        e.g., WindowsNT, UNIX, OS2, TSO, CMS
  *   2. invocation          COMMAND, SUBROUTINE, or FUNCTION
  *   3. full program name  the path/name the interpreter was given
  *
  * PARSE VERSION's exact wording is entirely implementation-defined;
  * only that it identifies the interpreter and, per ANSI X3.274-1996,
- * the language level it implements (e.g. "4.00" = TRL-2, "5.00" =
+ * the language level it implements (e.g., "4.00" = TRL-2, "5.00" =
  * ANSI) appear somewhere in the string. It is not three clean fields
  * the way SOURCE is -- this script reports it as-is rather than
  * guessing at a field split that may not hold for every interpreter.
@@ -27,7 +27,7 @@
  * ADDRESS() with no argument returns the name of the environment
  * commands are currently sent to. At startup, before any ADDRESS
  * statement, this is the platform's default host command environment
- * (e.g. CMD on Windows, a Unix shell name, CMS or TSO on VM/MVS).
+ * (e.g., CMD on Windows, a Unix shell name, CMS or TSO on VM/MVS).
  *
  * Usage:
  *   rexx implementation-details.rex
