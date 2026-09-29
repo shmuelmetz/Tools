@@ -226,7 +226,7 @@ do i = 1 to job~only~length
    end
 
 job~openLog
-job~findTools
+job~findTools(sources)
 job~setZipOptions
 
 do source over sources
@@ -314,7 +314,7 @@ else do
    end
 
 cmd = '7z a' job~p7zipopt self~excludes(drive) arch letter':/' pipez
-job~msg(cmd, 'Q')
+drive~msg(cmd)
 call time 'R'
 cmd
 archrc = rc
@@ -323,7 +323,7 @@ job~took('7za', archrc, letter, arch, '', time('E')~trunc)
 
 if drive~setting('TEST') ª= '' then do
    cmd = '7z t' arch pipeu
-   job~msg(cmd, 'Q')
+   drive~msg(cmd)
    call time 'R'
    cmd
    job~took('7z t', rc, arch, '', '', time('E')~trunc)
@@ -392,6 +392,9 @@ if val = .nil then
    val = self~class~defaults~at(key)
 return val
 
+::method archiver
+return self~setting('ARCHIVER')
+
 /* the redirection for zip output; TEE appends when APPEND was given anywhere */
 ::method redirect
 expose job
@@ -399,6 +402,17 @@ redirect = self~setting('REDIRECT')
 if redirect = '|tee' & job~append then
    redirect = redirect '/A'
 return redirect
+
+/* echoes a command line via the job's log: quiet (log only) except under
+   TEE, which shows it on console as well as logging it, per its own
+   "log and display" definition */
+::method msg
+expose job
+use arg text
+mode = 'Q'
+if self~redirect~abbrev('|tee') then
+   mode = ''
+job~msg(text, mode)
 
 ::method archiveBase
 expose letter job
@@ -476,7 +490,7 @@ if opts ª= '' & ªopts~abbrev('-') then
 zipfile = self~zipFile
 
 cmd = job~zipexe job~zipopt arch indir opts pipez
-job~msg(cmd, 'Q')
+drive~msg(cmd)
 call time 'R'
 cmd
 ziprc = rc
@@ -485,7 +499,7 @@ job~took('zip', ziprc, indir, zipfile, opts, time('E')~trunc)
 
 if drive~setting('TEST') ª= '' then do
    cmd = job~unzipexe '-t' zipfile pipeu
-   job~msg(cmd, 'Q')
+   drive~msg(cmd)
    call time 'R'
    cmd
    job~took('unzip -t', rc, zipfile, '', '', time('E')~trunc)
@@ -513,7 +527,7 @@ archive  = ''
 zipexe   = ''
 unzipexe = ''
 zipopt   = ''
-p7zipopt = '-mx=9  -ww:\temp'
+p7zipopt = '-mx=9 -md=128m -ww:\temp'
 only     = ''
 append   = 0
 verbose  = 'q'
@@ -674,32 +688,56 @@ else do i = 1 to only~length
 expose logfile
 logfile~close
 
+/* checks only the tools actually needed by selected drives -- an all-7z
+   run must not require zip.exe/unzip.exe, and vice versa */
 ::method findTools
 expose zipexe unzipexe
+use arg sources
 
-if unzipexe = '' then do
-   unzipexe = SysSearchPath('PATH', 'unzip.exe')
-   if unzipexe = '' then
-      call die 'unzip.exe not found in %PATH%', 4
-   self~msg(unzipexe 'found in %PATH%')
+zipNeeded  = 0
+p7zNeeded  = 0
+do source over sources
+   if self~selected(source~letter) then do
+      if source~archiver~isA(.SevenZipArchiver) then p7zNeeded = 1
+      else zipNeeded = 1
+      end
    end
-else
-   self~msg(unzipexe 'selected by option')
-unzipexe '-v | RXQUEUE'
-self~logQueue
-self~msg('', 'Q')
 
-if zipexe = '' then do
-   zipexe = SysSearchPath('PATH', 'zip.exe')
-   if zipexe = '' then
-      call die 'zip.exe not found in %PATH%', 4
-   self~msg(zipexe 'found in %PATH%')
+if zipNeeded then do
+   if unzipexe = '' then do
+      unzipexe = SysSearchPath('PATH', 'unzip.exe')
+      if unzipexe = '' then
+         call die 'unzip.exe not found in %PATH%', 4
+      self~msg(unzipexe 'found in %PATH%')
+      end
+   else
+      self~msg(unzipexe 'selected by option')
+   unzipexe '-v | RXQUEUE'
+   self~logQueue
+   self~msg('', 'Q')
+
+   if zipexe = '' then do
+      zipexe = SysSearchPath('PATH', 'zip.exe')
+      if zipexe = '' then
+         call die 'zip.exe not found in %PATH%', 4
+      self~msg(zipexe 'found in %PATH%')
+      end
+   else
+      self~msg(zipexe 'selected by option')
+   zipexe '-v | RXQUEUE'
+   self~logQueue
+   self~msg('', 'Q')
    end
-else
-   self~msg(zipexe 'selected by option')
-zipexe '-v | RXQUEUE'
-self~logQueue
-self~msg('', 'Q')
+
+if p7zNeeded then do
+   p7zexe = SysSearchPath('PATH', '7z.exe')
+   if p7zexe = '' then
+      call die '7z.exe not found in %PATH%', 4
+   self~msg(p7zexe 'found in %PATH%')
+   '7z | RXQUEUE'
+   self~logQueue
+   self~msg('', 'Q')
+   end
 
 ::method logQueue
 do queued()
