@@ -16,7 +16,7 @@ ARCHIVE DRIVE (first term, optional)
 OPTIONS (any case, any order; the shortest abbreviation is shown in capitals)
 Per-drive options apply to every drive, or to one drive when written as
 drive:option, e.g. M:LARGEM or M:ARCHIVE=7Z.
-  ARCHIVE=ZIP | ARCHIVE=7Z
+  ARCHIVE=ZIP | ARCHIVE=7Z | ZIP | 7Z
                archiver to use (ARC may be abbreviated to three letters).
                Default ZIP.
   D[IRECTORY]  also write a listing of the drive to ARCHIVE:\X.DIR and the
@@ -571,6 +571,10 @@ do while opts ª= ''
          if val = .nil then
             call die 'Invalid option' opt'; expected ARCHIVE=ZIP or ARCHIVE=7Z', 2
          end
+      when opt = 'ZIP' | opt = '7Z' then do
+         key = 'ARCHIVER'
+         val = .Archiver~named(opt)
+         end
       when 'APPEND'~abbrev(opt) then do
          if onDrive then self~jobOnly(opt)
          append = 1
@@ -654,13 +658,16 @@ else do
 'DEL W:\temp\?.ZIP'
 'DEL W:\temp\UNSPLIT.ZIP'
 'DEL' value('TEMP',,'OS2ENVIRONMENT')'\*.tmp'
-if only = '' then
+if only = '' then do
    'DEL' archive'\?.*Z??'
+   'DEL' archive'\?.*7Z'
+   end
 else do i = 1 to only~length
    letter = only~substr(i, 1)
    'DEL' archive'\'letter'.*DIR'
    'DEL' archive'\'letter'.*LOG'
    'DEL' archive'\'letter'.*Z??'
+   'DEL' archive'\'letter'.*7Z'
    end
 
 ::method closeLog
