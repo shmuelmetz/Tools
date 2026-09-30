@@ -197,19 +197,29 @@ job~archive = adrive
 EA   = '"?? ????. sf"'
 swap = 'Home/Mozilla/Firefox/Profiles/*.default/parent.lock'       ,
        '"*\SWAPPER.DAT" *SPF12\*.PAG'
+/* 7z's stat() fails outright on this one file (Invalid argument), aborting
+   the whole scan; the cause is unexplained -- $ is a legitimate filename
+   character, so it isn't that -- but excluding it is simpler than chasing
+   the p7zip bug */
+hExclude = 'Vendors\ArcaNoae\ASPIROU$'
+/* W: fails with ERROR_ACCESS_DENIED trying to read this ~14GB file --
+   the user's own renamed copy of a temporary, so it's liable to be open
+   or mid-rewrite at backup time; exclude it like SWAPPER.DAT rather than
+   fail the whole drive */
+wExclude = swap '"*\M.PDF.zip"'
 
 sources = .array~of(.SourceDrive~new('C', job, EA),   ,
                     .SourceDrive~new('D', job, EA),   ,
                     .SourceDrive~new('E', job, swap), ,
                     .SourceDrive~new('F', job, swap), ,
                     .SourceDrive~new('G', job, swap), ,
-                    .SourceDrive~new('H', job, ''),   ,
+                    .SourceDrive~new('H', job, hExclude), ,
                     .SourceDrive~new('I', job, ''),   ,
                     .SourceDrive~new('M', job, EA),   ,
                     .SourceDrive~new('P', job, EA),   ,
                     .SourceDrive~new('Q', job, swap), ,
                     .SourceDrive~new('U', job, ''),   ,
-                    .SourceDrive~new('W', job, swap))
+                    .SourceDrive~new('W', job, wExclude))
 
 job~parseOptions(opts, sources)
 
@@ -320,6 +330,15 @@ cmd
 archrc = rc
 job~maxrc = job~maxrc~max(archrc)
 job~took('7za', archrc, letter, arch, '', time('E')~trunc)
+/* see the matching comment in ArchivePart::run -- 7z's own redirect has
+ * already closed base'.log' by this point, so appending here is safe. */
+if redirect ª= '' then do
+   logline = .stream~new(base'.log')
+   logline~open('WRITE APPEND')
+   logline~lineout(cmd)
+   logline~lineout('rc='archrc)
+   logline~close
+   end
 
 if drive~setting('TEST') ª= '' then do
    cmd = '7z t' arch pipeu
@@ -496,6 +515,17 @@ cmd
 ziprc = rc
 job~maxrc = job~maxrc~max(ziprc)
 job~took('zip', ziprc, indir, zipfile, opts, time('E')~trunc)
+/* zip's own redirect (pipez, '>') already truncated and closed logbase'.log'
+ * above -- appending the command and its rc here can never clobber
+ * whatever zip wrote, quiet or verbose, and guarantees the log is never
+ * completely silent about what ran and how it ended. */
+if redirect ª= '' then do
+   logline = .stream~new(logbase'.log')
+   logline~open('WRITE APPEND')
+   logline~lineout(cmd)
+   logline~lineout('rc='ziprc)
+   logline~close
+   end
 
 if drive~setting('TEST') ª= '' then do
    cmd = job~unzipexe '-t' zipfile pipeu
@@ -634,10 +664,14 @@ do while opts ª= ''
          if onDrive then self~jobOnly(opt)
          unit = ''
          if nondigit > 0 then unit = opt~substr(nondigit)
-         if unit = '' | (unit~length = 1 & unit~verify('KMG', 'M') > 0) then
-            split = opt
-         else
-            call die 'Invalid split option' opt, 2
+         select
+            when unit = '' & (opt = '' | opt = 0) then
+               call die 'Invalid split option' opt, 2
+            when unit = '' | (unit~length = 1 & unit~verify('KMG', 'M') > 0) then
+               split = opt
+            otherwise
+               call die 'Invalid split option' opt, 2
+            end
          end
       otherwise
          call die 'Invalid option' opt, 2
