@@ -141,9 +141,14 @@ EXIT CODES
 */
 
 Call rxfuncadd 'SysLoadFuncs','REXXUTIL','SysLoadFuncs'
+call SysLoadFuncs
 signal on syntax name Fatal
 
 job = .BackupJob~new
+parse source . . me
+parse version ver
+say me SysGetFileDateTime(me)
+say ver
 parse arg raw
 parse upper var raw first opts
 
