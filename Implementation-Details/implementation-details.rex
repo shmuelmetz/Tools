@@ -35,7 +35,7 @@
  * Takes no options. Output goes to stdout; exits 0 always (this is a
  * report, not a check -- it has nothing to fail on).
  *
- * Author: Shmuel (Seymour J. Metz) (שמואל בן לייביש ולאה) <smetz3@gmu.edu>
+ * Author: Seymour J. Metz (H: Shmuel) <smetz3@gmu.edu>
  * License: MIT
  */
 

@@ -4,7 +4,7 @@
 #   Windows:       file association handles dispatch; no first line needed
 #   *ix / macOS:   this shebang line is correct; chmod +x the file
 # The build script (build.rex) can prepend the correct line for each platform.
-# Copyright 2006 by Shmuel (Seymour J.) Metz.
+# Copyright 2006 by Seymour J. Metz (H: Shmuel שמואל בן לייביש ולאה).
 # <https://mason.gmu.edu/~smetz3>
 # I hereby grant a license to anybody to distribute the
 # unmodified code of this utility.
@@ -1950,6 +1950,8 @@ sub sortunique {
 1;
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 unobfuscate - extract domain, IP and URL information
@@ -2023,13 +2025,13 @@ sender. It will recognize a single decimal or hexadecimal number as
 the IP address of a host.
 
 =head1 AUTHOR
-Shmuel (Seymour J.) Metz <smetz3@gmu.edu>
+Seymour J. Metz (H: Shmuel שמואל בן לייביש ולאה) <smetz3@gmu.edu>
 
 L<https://mason.gmu.edu/~smetz3>
 
 =head1 COPYRIGHT
 
-Copyright 2006 by Shmuel (Seymour J.) Metz.
+Copyright 2006 by Seymour J. Metz (H: Shmuel שמואל בן לייביש ולאה).
 L<https://mason.gmu.edu/~smetz3>
 
 I hereby grant a license to anybody to distribute the

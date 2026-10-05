@@ -27,7 +27,7 @@
  *   build --platform os2  --perl F:\Perl\bin\perl unobfuscate.pl
  *   build --platform windows webzip.rex   (strips any existing first line)
  *
- * Author: Shmuel (Seymour J.) Metz <smetz3@gmu.edu>
+ * Author: Seymour J. Metz (H: Shmuel) <smetz3@gmu.edu>
  *         https://mason.gmu.edu/~smetz3
  * Repo:   https://github.com/shmuelmetz/tools
  */

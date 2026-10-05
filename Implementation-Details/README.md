@@ -45,7 +45,7 @@ Always exits 0 -- this is a report, not a check.
 
 ## Author
 
-Shmuel (Seymour J. Metz) (שמואל בן לייביש ולאה) <smetz3@gmu.edu>
+Seymour J. Metz (H: Shmuel שמואל בן לייביש ולאה) <smetz3@gmu.edu>
 
 ## License
 

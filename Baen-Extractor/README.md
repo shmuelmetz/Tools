@@ -39,7 +39,7 @@ M:\BAEN\
 
 ## Author
 
-Shmuel (Seymour J. Metz) (שמואל בן לייביש ולאה) <smetz3@gmu.edu>
+Seymour J. Metz (H: Shmuel שמואל בן לייביש ולאה) <smetz3@gmu.edu>
 
 ## License
 

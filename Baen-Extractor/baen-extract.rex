@@ -26,7 +26,7 @@
  *   ooRexx 5.x (ArcaOS / Windows)
  *   info-zip zip.exe on PATH or in C:\msys64\usr\bin\
  *
- * Author: Shmuel (Seymour J. Metz) (שמואל בן ל"ביש) <smetz3@gmu.edu>
+ * Author: Seymour J. Metz (H: Shmuel) <smetz3@gmu.edu>
  * License: MIT
  */
 

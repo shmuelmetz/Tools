@@ -35,7 +35,7 @@
  *   On error (missing file, bad args): prints a message to stdout
  *   prefixed 'ERROR:', exits 2.
  *
- * Author: Shmuel (Seymour J. Metz) (שמואל בן לייביש ולאה) <smetz3@gmu.edu>
+ * Author: Seymour J. Metz (H: Shmuel) <smetz3@gmu.edu>
  * License: MIT
  */
 

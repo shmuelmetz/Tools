@@ -1,6 +1,6 @@
 # tools
 
-Scripting tools by Shmuel (Seymour J.) Metz.
+Scripting tools by Seymour J. Metz (H: Shmuel שמואל בן לייביש ולאה).
 
 A mix of ooRexx and Perl utilities. All tools use environment variables
 for site-specific defaults; no personal paths are hardcoded.
@@ -74,5 +74,5 @@ dependencies). Other tools are MIT licensed.
 
 ## Author
 
-Shmuel (Seymour J.) Metz <smetz3@gmu.edu>
+Seymour J. Metz (H: Shmuel שמואל בן לייביש ולאה) <smetz3@gmu.edu>
 https://mason.gmu.edu/~smetz3

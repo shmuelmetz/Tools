@@ -27,7 +27,7 @@ powershell -ExecutionPolicy Bypass -File Set-Accessibility.ps1
 
 ## Author
 
-Shmuel (Seymour J. Metz) (שמואל בן לייביש ולאה) <smetz3@gmu.edu>
+Seymour J. Metz (H: Shmuel שמואל בן לייביש ולאה) <smetz3@gmu.edu>
 
 ## License
 
