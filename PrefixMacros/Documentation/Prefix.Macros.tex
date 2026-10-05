@@ -1,7 +1,7 @@
 % Build: pandoc -f odt -t json Prefix.Macros.odt -o Prefix.Macros.json
 %       rexx odt-to-latex-converter.rex Prefix.Macros.json
 %       rexx assemble.rex
-%       pdflatex Prefix.Macros.tex
+%       xelatex Prefix.Macros.tex
 %
 % Converted from Prefix.Macros.odt by walking pandoc's own JSON AST
 % (odt-to-latex-converter.rex) -- pandoc resolves the ODF's structure
@@ -12,11 +12,14 @@
 \usepackage[letterpaper,margin=1in]{geometry}
 \usepackage{enumitem}
 \usepackage{pfxmacros}
+\usepackage{fontspec}
+\newfontfamily\hebrewfont{David CLM}[Script=Hebrew]
+\TeXXeTstate=1
 % Bold comes from \pfxcommand itself (pfxmacros.sty), not from here.
 \setlist[description]{leftmargin=\pfxprefixwidth, labelsep=0.3cm, style=nextline, font=\normalfont}
 
 \title{Prefix Macros for THE and XEDIT}
-\author{Shmuel (Seymour J.) Metz}
+\author{Seymour J. Metz (H: Shmuel {\hebrewfont\beginR שמואל בן לייביש ולאה\endR})}
 \date{}
 
 \begin{document}

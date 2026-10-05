@@ -1,16 +1,17 @@
-% Build: pdflatex pfx.slides.tex
+% Build: xelatex pfx.slides.tex
 %
 % Converted from pfx.slides.odt (LibreOffice Writer, not Impress --
 % five pages separated by manual page breaks standing in for slides)
-% to a real beamer deck. Plain ASCII content throughout, so pdflatex is
-% enough; no fontspec/xelatex is needed here, unlike Prefix.Macros'
-% large.cardinal-style shirts.
+% to a real beamer deck. xelatex, for the Hebrew in the author line.
 \documentclass[11pt]{beamer}
 \setbeamertemplate{navigation symbols}{}
 \usepackage{pfxmacros}
+\usepackage{fontspec}
+\newfontfamily\hebrewfont{David CLM}[Script=Hebrew]
+\TeXXeTstate=1
 
 \title{Prefix Macros for THE and XEDIT}
-\author{Shmuel (Seymour J.) Metz}
+\author{Seymour J. Metz (H: Shmuel \texorpdfstring{{\hebrewfont\beginR שמואל בן לייביש ולאה\endR}}{שמואל בן לייביש ולאה})}
 \institute{\href{mailto:smetz3@gmu.edu}{smetz3@gmu.edu} \\ \url{http://mason.gmu.edu/~smetz3}}
 \date{}
 

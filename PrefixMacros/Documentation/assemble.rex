@@ -33,7 +33,7 @@ exit
                '\setlist[description]{leftmargin=\pfxprefixwidth, labelsep=0.3cm, style=nextline, font=\normalfont}' || '0a'x || ,
                '0a'x || ,
                '\title{Prefix Macros for THE and XEDIT}' || '0a'x || ,
-               '\author{Shmuel (Seymour J.) Metz}' || '0a'x || ,
+               '\author{Seymour J. Metz (H: Shmuel)}' || '0a'x || ,
                '\date{}' || '0a'x || ,
                '0a'x || ,
                '\begin{document}' || '0a'x || ,
