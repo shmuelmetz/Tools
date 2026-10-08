@@ -3,9 +3,16 @@
 
 parse arg argLine
 
-opts = .Directory~of(("trace", .false), ("logFile", ""), ("version", "1.0.0"))
+opts = .directory~of(,
+  ("trace",   .false),,
+  ("logFile", ""),,
+  ("version", "1.0.0"),
+)
 
-args = .Directory~of(("targetDir", directory()), ("pkgName", "STDIN"))
+args = .directory~of(,
+  ("targetDir", directory()),,
+  ("pkgName",   "STDIN"),
+)
 
 do while argLine <> ""
   parse var argLine token argLine
