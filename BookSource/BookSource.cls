@@ -69,8 +69,8 @@
     return books
 
 ::METHOD import
-    use strict arg bookId, destDir, prefix = '', status = (.nil)
     expose root
+    use strict arg bookId, destDir, prefix = '', status = (.nil)
     srcDir = root'\'bookId
     if \SysIsFileDirectory(srcDir) then do
         if status \= .nil then status~ok = .false
@@ -90,8 +90,8 @@
     return copied > 0
 
 ::METHOD export
-    use strict arg bookIds, destZip, status = (.nil)
     expose root
+    use strict arg bookIds, destZip, status = (.nil)
     fisClass = bsf.import("java.io.FileInputStream")
     fosClass = bsf.import("java.io.FileOutputStream")
     zosClass = bsf.import("java.util.zip.ZipOutputStream")
@@ -155,8 +155,8 @@
     return books
 
 ::METHOD import
-    use strict arg bookId, destDir, prefix = '', status = (.nil)
     expose zipPath
+    use strict arg bookId, destDir, prefix = '', status = (.nil)
     if \SysFileExists(zipPath) then do
         if status \= .nil then status~ok = .false
         return .false
@@ -187,8 +187,8 @@
     return extracted > 0
 
 ::METHOD export
-    use strict arg bookIds, destZip, status = (.nil)
     expose zipPath
+    use strict arg bookIds, destZip, status = (.nil)
     if \SysFileExists(zipPath) then do
         if status \= .nil then status~ok = .false
         return .false
@@ -251,8 +251,8 @@
     return books
 
 ::METHOD import
-    use strict arg bookId, destDir, prefix = '', status = (.nil)
     expose catalog
+    use strict arg bookId, destDir, prefix = '', status = (.nil)
     if \catalog~hasIndex(bookId) then do
         if status \= .nil then status~ok = .false
         return .false
