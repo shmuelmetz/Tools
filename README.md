@@ -45,6 +45,27 @@ shebang (*ix), or nothing (Windows) at build time.
 build --platform <os2|unix|windows> [--perl path] [--rexx path] file ...
 ```
 
+### groupsio2mbox (ooRexx)
+
+Convert groups.io messages, saved as JSON from the groups.io API's
+getmessages call, to an mbox file beside each input. groups.io does not
+give members the original mail, so the From address, Message-ID and
+threading headers are reconstructed (under the reserved `.invalid`
+domain); the date, subject and body come from groups.io unchanged.
+Bodies are text/html, quoted-printable; headers are UTF-8 (RFC 6532).
+Needs ooRexx 5.0 or later (`json.cls`).
+
+```
+groupsio2mbox file.json [file.json ...]
+```
+
+## Techniques
+
+Papers on programming techniques, in TeX (build with `xelatex`, twice).
+
+- `Techniques/BXH-switches.tex`: testing successive switches with BXH and
+  BXLE (William Collier's technique, IBM TR 00.1412-1, 1966).
+
 ## Platform notes
 
 | Platform   | Perl first line              | ooRexx first line      |

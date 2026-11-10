@@ -1,0 +1,7 @@
+# TeX build artifacts (sources are committed, products are not)
+*.pdf
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.toc

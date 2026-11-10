@@ -1,0 +1,264 @@
+% BXH-switches.tex -- testing successive switches with BXH and BXLE.
+% Build: xelatex BXH-switches.tex (twice).
+\documentclass[11pt]{article}
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{english}
+\setotherlanguage{hebrew}
+\setmainfont{Times New Roman}
+\newfontfamily\hebrewfont[Script=Hebrew]{Times New Roman}
+\setmonofont{Consolas}[Scale=MatchLowercase]
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage{fancyvrb}
+\usepackage[hidelinks]{hyperref}
+
+\title{Testing Successive Switches with BXH and BXLE}
+\author{Seymour J. Metz (H: Shmuel \texthebrew{שמואל בן לייביש ולאה})}
+\date{10 November 2026}
+
+% One register cell for the diagrams: \cell{x}{y}{text}{fill}
+\newcommand{\cell}[4]{%
+  \node[draw, minimum width=7mm, minimum height=7mm, fill=#4,
+        font=\ttfamily\small] at (#1,#2) {#3};}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper explains William Collier's technique~\cite{collier1966} for
+testing a string of switches with a sequence of BXH or BXLE instructions. It
+shows why the technique works, the layout of the switch word it requires
+(including a trailing guard bit that must be one), and its extension to
+more modern processors.
+\end{abstract}
+
+\section{Origin}
+
+The technique is due to William Collier, who described it in IBM Technical
+Report TR 00.1412-1, dated 22 June 1966~\cite{collier1966}.
+
+\section{The instructions}
+
+While BXH and BXLE were designed for loop control, specifying R1 and R3 as
+the same odd register allows their use for testing 30 consecutive switches in
+succession.
+
+\section{The trick}
+
+With $R_1 = R_3$ odd, the instructions double the contents $x$, compare the
+new contents $2x$ to the original contents $x$, and branch depending on the
+compare result. Figure~\ref{fig:one} shows one execution.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=7mm,y=7mm]
+  \node[anchor=east, font=\small] at (-0.8,0) {$x$ (before)};
+  \foreach \b [count=\i from 0] in {s,b,?,?,?,?,?,?} {
+    \ifnum\i=0 \cell{\i}{0}{\b}{gray!25}
+    \else\ifnum\i=1 \cell{\i}{0}{\b}{yellow!40}
+    \else \cell{\i}{0}{\b}{white}\fi\fi }
+  \node[anchor=east, font=\small] at (-0.8,-2.4) {$2x$ (after)};
+  \foreach \b [count=\i from 0] in {b,?,?,?,?,?,?,?} {
+    \ifnum\i=0 \cell{\i}{-2.4}{\b}{yellow!40}
+    \else \cell{\i}{-2.4}{\b}{white}\fi }
+  \foreach \i in {1,...,7} {
+    \draw[-{Stealth}, thick] (\i,-0.45) -- (\i-1,-1.95); }
+  \node[font=\small, align=left, anchor=west] at (8.3,-1.2)
+    {every bit moves one place left;\\
+     $s$ (the old sign) is lost;\\
+     $b$ becomes the new sign;\\
+     the comparand is still the old $x$};
+\end{tikzpicture}
+\caption{One execution of \texttt{BXH r,r,target}: the register is doubled,
+that is, shifted left one bit (shown at 8 bits; the machine uses 32).}
+\label{fig:one}
+\end{figure}
+
+\section{Why it tests one bit}
+
+Let $s$ be the sign bit of $x$ and $b$ the bit that follows it, the bit that
+becomes the sign of $2x$. Table~\ref{tab:cases} takes the four cases.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{ccll}
+\toprule
+$s$ & $b$ & $2x$ (overflow ignored) & is $2x > x$? \\
+\midrule
+0 & 0 & non-negative, no overflow & yes \\
+0 & 1 & negative (overflow) & no: $2x < 0 \le x$ \\
+1 & 0 & non-negative (overflow) & yes: $2x \ge 0 > x$ \\
+1 & 1 & negative, no overflow & no: $2x = x + x < x$ \\
+\bottomrule
+\end{tabular}
+\caption{The four cases of one BXH execution.}
+\label{tab:cases}
+\end{table}
+
+For nonzero $x$, BXH branches when $b = 0$ and BXLE branches when $b = 1$.
+Because each
+execution leaves the shifted value in the register, the next execution tests
+the next bit. A sequence of BXH instructions therefore reads the switches
+one at a time, from the high-order end.
+
+\section{The switch word}
+
+Two positions in the word are not switches (Figure~\ref{fig:layout}).
+\begin{itemize}
+\item \textbf{The leading bit} (bit~0) is never tested: the first execution
+  tests bit~1. Its value does not matter.
+\item \textbf{The trailing bit} (bit~31) must be \textbf{one}. It guarantees
+  that the register is never zero while switches remain to be tested, which
+  rules out the exception above. With a zero there, a switch that is zero
+  and is followed only by zero switches would read as one.
+\end{itemize}
+That leaves bits 1 to 30 for thirty switches in a fullword. The grande forms
+(BXHG, BXLEG, JXHG and JXLEG) give 62 switches in a grande register;
+Section~\ref{sec:code}
+shows both widths.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=7mm,y=7mm]
+  \cell{0}{0}{0}{gray!25}
+  \foreach \i in {1,...,6} { \cell{\i}{0}{$f_{\i}$}{yellow!25} }
+  \node at (7.5,0) {$\cdots$};
+  \cell{9}{0}{$f_{29}$}{yellow!25}
+  \cell{10}{0}{$f_{30}$}{yellow!25}
+  \cell{11}{0}{1}{green!25}
+  \node[font=\scriptsize] at (0,0.75) {0};
+  \node[font=\scriptsize] at (1,0.75) {1};
+  \node[font=\scriptsize] at (10,0.75) {30};
+  \node[font=\scriptsize] at (11,0.75) {31};
+  \draw (0,-0.6) -- (0,-1.1) node[below, font=\small, align=center]
+    {leading bit\\(not tested)};
+  \draw (5.5,-0.6) -- (5.5,-1.1) node[below, font=\small] {30 switches};
+  \draw (11,-0.6) -- (11,-1.1) node[below, font=\small, align=center]
+    {trailing guard\\(must be 1)};
+\end{tikzpicture}
+\caption{The fullword of switches. Bit numbers are those of the Principles of
+Operation, with bit~0 the sign.}
+\label{fig:layout}
+\end{figure}
+
+\section{A worked example}
+
+Table~\ref{tab:walk} follows a register through six tests, shown at 8 bits
+so that every bit is visible: a leading 0, the switches 1~0~1~1~0~0, and the
+trailing guard~1. The arithmetic is the same as in 32 bits, modulo $2^8$
+instead of $2^{32}$.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{clrlrcc}
+\toprule
+test & $x$ (bits) & $x$ & $2x$ (bits) & $2x$ & BXH & switch \\
+\midrule
+1 & \texttt{01011001} &   89 & \texttt{10110010} &  $-78$ & falls through & 1 \\
+2 & \texttt{10110010} &  $-78$ & \texttt{01100100} &  100 & branches & 0 \\
+3 & \texttt{01100100} &  100 & \texttt{11001000} &  $-56$ & falls through & 1 \\
+4 & \texttt{11001000} &  $-56$ & \texttt{10010000} & $-112$ & falls through & 1 \\
+5 & \texttt{10010000} & $-112$ & \texttt{00100000} &   32 & branches & 0 \\
+6 & \texttt{00100000} &   32 & \texttt{01000000} &   64 & branches & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Six successive executions of \texttt{BXH r,r,target} (8-bit
+illustration). Wherever the sign changes (tests 1, 2, 3 and 5) the addition
+overflows, and the overflow is ignored. In tests 5 and 6 only the trailing
+guard keeps the register non-zero.}
+\label{tab:walk}
+\end{table}
+
+The table was generated by program, and the rule was checked exhaustively
+for every switch pattern at register widths of 8, 12 and 16 bits: with the
+trailing guard set to one, every switch is read correctly; with it set to
+zero, a quarter of all patterns are misread.
+
+\section{In code}\label{sec:code}
+
+Since BXH branches when the switch is zero, it can branch around the code
+for a switch that is off; BXLE reverses the sense, branching when the switch
+is on. Every test is executed in turn, whatever the earlier results: unlike a
+SELECT, which stops at the first successful test, the sequence must run in
+order, because each test depends on the shift performed by the one before.
+
+On current machines the relative-branch forms need no base register for the
+branch target. JXH and JXLE are the High Level Assembler mnemonics for BRANCH
+RELATIVE ON INDEX HIGH and LOW OR EQUAL (BRXH, BRXLE), which operate on 32-bit
+values; JXHG and JXLEG (BRXHG, BRXLG) are their 64-bit counterparts. The
+arithmetic of the trick is the same at either width.
+
+The IF macro of the High Level Assembler Toolkit's structured programming
+macros has no syntax for an instruction that branches by itself, as these do,
+so the examples use explicit branches.
+
+\subsection{32-bit instructions: 30 switches in a fullword}
+
+AMODE(24) and AMODE(31) are the same case: the 32-bit forms test 30 switches
+in either mode. The example shows AMODE(31).
+
+\begin{Verbatim}[fontsize=\small]
+SWTEST   CSECT
+SWTEST   AMODE 31
+SWTEST   RMODE ANY
+         L     R15,STATUS         odd register: R1 = R3 = R15
+         JXH   R15,R15,SKIP1      switch 1 off: skip action 1
+*        ... action 1 ...
+SKIP1    JXH   R15,R15,SKIP2      switch 2 off: skip action 2
+*        ... action 2 ...
+SKIP2    DS    0H
+*        ...
+STATUS   DC    AL.1(0,FLAG1,...,FLAG30,1)    4 bytes
+\end{Verbatim}
+
+With JXLE the sense is reversed, so a test can branch to the code for a
+switch that is on:
+
+\begin{Verbatim}[fontsize=\small]
+         JXLE  R15,R15,DO1        switch 1 on: go to action 1
+\end{Verbatim}
+
+\subsection{Grande instructions: 62 switches in a grande register}
+
+The grande forms JXHG and JXLEG use the whole 64-bit register, so a grande
+register holds a leading bit, 62 switches and the trailing guard. No
+AMODE(64) is needed. The register is loaded with LG.
+
+\begin{Verbatim}[fontsize=\small]
+         LG    R15,STATUS64       odd register: R1 = R3 = R15
+         JXHG  R15,R15,SKIP1      switch 1 off: skip action 1
+*        ... action 1 ...
+SKIP1    JXHG  R15,R15,SKIP2      switch 2 off: skip action 2
+*        ... action 2 ...
+SKIP2    DS    0H
+*        ...
+         DS    0D
+STATUS64 DC    AL.1(0,FLAG1,...,FLAG62,1)    8 bytes
+\end{Verbatim}
+
+As with JXLE, JXLEG reverses the sense:
+
+\begin{Verbatim}[fontsize=\small]
+         JXLEG R15,R15,DO1        switch 1 on: go to action 1
+\end{Verbatim}
+
+The simulations described in the previous section were repeated at 32 and 64
+bits for random switch patterns, weighted towards runs of trailing zero
+switches: with the trailing guard set to one, 30 and 62 switches respectively
+were read without error.
+
+\section*{Acknowledgments}
+The technique and its first description are William Collier's. This paper
+was drafted with the assistance of Claude (Anthropic), an AI engine, which
+also carried out the simulations; the author is responsible for its content.
+
+\begin{thebibliography}{9}
+\bibitem{collier1966}
+William Collier, IBM Technical Report TR 00.1412-1, 22 June 1966.
+\end{thebibliography}
+
+\end{document}
