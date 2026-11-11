@@ -116,8 +116,8 @@ Two positions in the word are not switches (Figure~\ref{fig:layout}).
   rules out the exception above. With a zero there, a switch that is zero
   and is followed only by zero switches would read as one.
 \end{itemize}
-That leaves bits 1 to 30 for thirty switches in a fullword register. The grande forms
-(BXHG, BXLEG, JXHG and JXLEG) give 62 switches in a grande register;
+That leaves bits 1 to 30 for thirty switches in a fullword register. The grandé forms
+(BXHG, BXLEG, JXHG and JXLEG) give 62 switches in a grandé register;
 Section~\ref{sec:code}
 shows both widths.
 
@@ -200,9 +200,9 @@ JXLE branches to the code for a switch that is on:
          JXLE  R15,R15,DO1        switch 1 on: go to action 1
 \end{Verbatim}
 
-\subsection{Grande instructions: 62 switches in a grande register}
+\subsection{Grandé instructions: 62 switches in a grandé register}
 
-The grande forms JXHG and JXLEG use the whole 64-bit register, so a grande
+The grandé forms JXHG and JXLEG use the whole 64-bit register, so a grandé
 register holds a leading bit, 62 switches and the trailing guard.
 
 \begin{Verbatim}[fontsize=\small]
