@@ -231,10 +231,16 @@ select
       select
          when Command_name = CASE then
             Indent = Indent - Indent_CASE
-         when Command_name = ELSEI then
+         when Command_name = ELSE  | ,
+              Command_name = ELSEI then
             Indent = Indent - Indent_IF
          when Command_name = EXITI then
             Indent = Indent - Indent_SEARCH
+         when Command_name = 'ORELS' then
+            Indent = Indent - Indent_SEARCH
+         when Command_name = 'OTHER' | ,
+              Command_name = 'OTHRW' then
+            Indent = Indent - Indent_WHEN
          when abbrev(WHEN,     Command_name,3) then
             Indent = Indent - Indent_WHEN
          otherwise
@@ -398,9 +404,9 @@ select
             COMMAND          SET   PENDING ON 'RI'
             end
          WHEN Command_name = EXITI then do
-            Op_col = Ccol + Indent_STRTSRCH
+            Op_col = Ccol + Indent_SEARCH
             Eline  = Cline + 3
-            Pd2    = Pad || left('',Indent_STRTSRCH)
+            Pd2    = Pad || left('',Indent_SEARCH)
             call Get_mask
             Ccol = Ccol+7
             COMMAND ':'Iline INPUT pad'EXITIF if_options'
@@ -470,6 +476,27 @@ select
             COMMAND          SET   PENDING ON 'RI'
             COMMAND          INPUT Pad'ENDIF  ,'
             end
+         when Command_name = 'ORELS' | ,
+              Command_name = 'OTHER' | ,
+              Command_name = 'OTHRW' then do
+            /* ORELSE in a search, OTHRWISE in a SELECT; cursor to opcode */
+            if Command_name = 'ORELS' then do
+               Keyword = 'ORELSE  ,'
+               Pd2     = Pad || left('',Indent_SEARCH)
+               end
+            else do
+               Keyword = 'OTHRWISE ,'
+               Pd2     = Pad || left('',Indent_WHEN)
+               end
+            Cline  = Cline + 1
+            Ccol   = length(Pd2) + 1
+            Eline  = Cline
+            call Get_mask
+            COMMAND ':'Iline INPUT Pad || Keyword
+            COMMAND          SET   PENDING ON '..'
+            COMMAND          INPUT Pd2'opcod ,'
+            COMMAND          SET   PENDING ON 'RI'
+            end
          when Command_name = 'LC' then do
             select
                when Op1 = '' then do
@@ -514,9 +541,9 @@ select
             end
          WHEN abbrev('SEARCH',Command_name,3) | ,
               Command_name = STRTS then do
-            Op_col = Ccol + Indent_STRTSRCH
+            Op_col = Ccol + Indent_SEARCH
             Eline  = Cline + 8
-            Pd2    = Pad || left('',Indent_STRTSRCH)
+            Pd2    = Pad || left('',Indent_SEARCH)
             call Get_mask
             /*
                          1         2

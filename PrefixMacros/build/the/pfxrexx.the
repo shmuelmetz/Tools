@@ -278,17 +278,19 @@ select
                when Op1 = '' then do
                   DO_string = 'do'
                   Cline  = Cline + 1
+                  Ccol   = Op_col
                   end
                when abbrev(FOREVER,Op1,1) then do
                   DO_string = 'do while' 1
                   Cline  = Cline + 1
+                  Ccol   = Op_col
                   end
                when abbrev(UNTIL,Op1) then do
-                  DO_string = 'do until .'
+                  DO_string = 'do until &'
                   Ccol = Ccol + 9
                   end
                when abbrev(WHILE,Op1) then do
-                  DO_string = 'do while .'
+                  DO_string = 'do while &'
                   Ccol = Ccol + 9
                   end
                otherwise do
@@ -306,7 +308,8 @@ select
             Eline  = Cline + 5
             Pd2    = Pad || left('',Indent_IF)
             call Get_mask
-            COMMAND ':'Iline INPUT pad'if . then do'
+            Ccol   = Ccol + 3            /* on the & of 'if & then do' */
+            COMMAND ':'Iline INPUT pad'if & then do'
             COMMAND          SET   PENDING ON 'CLINE'
             call Insert_line RI, ''
             COMMAND          INPUT Pd2'end'
@@ -350,10 +353,10 @@ select
             Op_col = Indent + Indent_SELECT + Indent_WHEN + 1
             Eline  = Cline + 6
             Pd2    = Pad || left('',Indent_SELECT)
-            Pd3    = Pad || left('',Indent_WHEN)
+            Pd3    = Pd2 || left('',Indent_WHEN)
             call Get_mask
             COMMAND ':'Iline INPUT pad || 'select'
-            COMMAND          INPUT pd2 || 'when . then do'
+            COMMAND          INPUT pd2 || 'when & then do'
             COMMAND          SET   PENDING ON 'CLINE'
             call Insert_line RIC, ''
             COMMAND          INPUT Pd3'end'
@@ -369,7 +372,7 @@ select
             Eline  = Cline + 2
             Pd2    = Pad || left('',Indent_WHEN)
             call Get_mask
-            COMMAND ':'Iline INPUT pad || 'when . then do'
+            COMMAND ':'Iline INPUT pad || 'when & then do'
             call Insert_line RIC, ''
             COMMAND          INPUT Pd2'end'
             end
@@ -441,7 +444,7 @@ Get_mask:
       Mask = MASK.1
    Mask = overlay('/*',Mask,40)
    Mask = overlay('*/',Mask,70)
-   Mask = overlay('.',Mask,Op_col)
+   Mask = overlay('&',Mask,Op_col)
    if Def_env = XEDIT then
       COMMAND SET MASK IMMED MASK.1
    return
