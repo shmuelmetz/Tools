@@ -27,9 +27,9 @@
 
 To use these macros, you must issue appropriate \constant{SET PREFIX SYNONYM} commands, normally from a profile specific to the file type. With the exception of \constant{..}, the command may be preceded or followed by a repetition count prior to the first option. In general, these commands insert templates for control structures with pending commands to simplify subsequent input. They set the cursor position and indentation appropriately for the line preceding the insert and for the type of insert. The following documentation uses case to show minimum truncation, e.g., ASMLe may be entered as either ASMLE or as ASML. \constant{Bold} text indicates a constant string and \variable{italic} text indicates a variable.
 
-Note that each XEDIT file does SET PENDING commands for the macros \constant{..}, \constant{RI} and \constant{RIC}, but that you are also allowed to key them in yourself. You can use a GLOBALV to override some indentation defaults. The documentation for each prefix command shows any command set pending prior to the inserted text.
+Note that each XEDIT file does SET PENDING commands for the macros \constant{..}, \constant{RI} and \constant{RIC}, but that you are also allowed to key them in yourself. Under CMS you can use GLOBALV to override some indentation defaults; under THE the defaults apply. The documentation for each prefix command shows any command set pending prior to the inserted text.
 
-\constant{RI} and \constant{RIC} are slightly more complex. \constant{RIC} with no user input deletes itself.; otherwise the command does a \constant{SET PENDING .}. and inserts a blank line.. A repeated \constant{RI} or \constant{RIC}, e.g., \constant{3RI}, behaves differently for the first line and subsequent lines. for the first line of cc\constant{RI} or cc\constant{RIC}, it does a \constant{SET PENDING RIC}cc on the inserted blank line; for subsequent lines it does a \constant{SET PENDING ..}.
+\constant{RI} and \constant{RIC} are slightly more complex. \constant{RIC} with no user input deletes itself; otherwise the command does a \constant{SET PENDING ..} and inserts a blank line. A repeated \constant{RI} or \constant{RIC}, e.g., \constant{3RI}, behaves differently for the first line and subsequent lines. For the first line of cc\constant{RI} or cc\constant{RIC}, it does a \constant{SET PENDING RIC}cc on the inserted blank line; for subsequent lines it does a \constant{SET PENDING ..}.
 
 The LC and \constant{UC} commands translate to lower and upper case. By default they translate everything within the current zone, but an operand of \constant{C} requests translation only up to the cursor column and a numeric operand requests translation only up to the specified column.
 
@@ -86,11 +86,11 @@ Prefix macros for GML are slightly different; you define the single synonym : th
 
 \section*{Prefix macros for High Level Assembler}
 
-\constant{GLOBALV PFXHLASM} variables override default indentation.
+Under CMS, \constant{GLOBALV PFXHLASM} variables override default indentation; under THE the defaults apply.
 
 \begin{description}
-\item[{\pfxcommand{\constant{Indent=CASE}=2}}] 
-\item[{\pfxcommand{\constant{Indent=CASENTRY}=2}}] 
+\item[{\pfxcommand{\constant{Indent\_CASE}=2}}] 
+\item[{\pfxcommand{\constant{Indent\_CASENTRY}=2}}] 
 \item[{\pfxcommand{\constant{Indent\_DO}=2}}] 
 \item[{\pfxcommand{\constant{Indent\_IF}=2}}] 
 \item[{\pfxcommand{\constant{Indent\_SEARCH}=2}}] 
@@ -104,115 +104,115 @@ The prefix commands for the structured programming macros of the High Level Asse
 \item[{\pfxcommand{ASMLea}}] Insert ASMLEAVE
 
 \begin{pfxexample}
-\pfxrow{..}{ASMLEAVE label}
+\pfxrow[11]{..}{ASMLEAVE label}
 \pfxrow{RI}{}
 \end{pfxexample}
 \item[{\pfxcommand{CASE}}] Insert CASE
 
 \begin{pfxexample}
-\pfxrow{..}{CASE ?}
-\pfxrow{RI}{\constant{Opcod ,}}
+\pfxrow[11]{..}{CASE ?}
+\pfxrow[13]{RI}{\constant{Opcod ,}}
 \end{pfxexample}
 \item[{\pfxcommand{CASEE or CASEN}}] Insert CASENTRY block
 
 \begin{pfxexample}
-\pfxrow{}{CASENTRY R?,POWER=?,VECTOR=B}
-\pfxrow{..}{\constant{CASE}}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{}{ENDCASE ,}
+\pfxrow[9]{}{CASENTRY R?,POWER=?,VECTOR=B}
+\pfxrow[11]{..}{\constant{CASE}}
+\pfxrow[13]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDCASE ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO}}] Insert DO ONCE block:
 
 \begin{pfxexample}
-\pfxrow{..}{DO ONCE}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{}{ENDDO ,}
+\pfxrow[9]{..}{DO ONCE}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{\constant{1DO}\variable{nn}}}] Insert DO FROM Rnn block:
 
 \begin{pfxexample}
-\pfxrow{..}{DO FROM=(R\variable{nn})}
-\pfxrow{RI}{\constant{opcod}}
-\pfxrow{}{ENDDO ,}
+\pfxrow[9]{..}{DO FROM=(R\variable{nn})}
+\pfxrow[11]{RI}{\constant{opcod}}
+\pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO By}}] Insert DO FROM BY block:
 
 \begin{pfxexample}
-\pfxrow{..}{DO FROM=(R?),BY=(R?)}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{}{ENDDO ,}
+\pfxrow[9]{..}{DO FROM=(R?),BY=(R?)}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{\constant{DO B}n}}] Insert DO FROM BY Rn block:
 
 \begin{pfxexample}
-\pfxrow{..}{DO FROM=(R?),BY=(R\variable{n})}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{}{ENDDO ,}
+\pfxrow[9]{..}{DO FROM=(R?),BY=(R\variable{n})}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO FO or DO In}}] Insert DO forever block:
 
 \begin{pfxexample}
-\pfxrow{..}{DO INF}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{}{ENDDO ,}
+\pfxrow[9]{..}{DO INF}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO FR}}] Insert DO FROM block:
 
 \begin{pfxexample}
-\pfxrow{..}{DO FROM=(R?)}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{}{ENDDO ,}
+\pfxrow[9]{..}{DO FROM=(R?)}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO Un}}] Insert DO UNTIL block:
 
 \begin{pfxexample}
-\pfxrow{..}{DO UNTIL=if\_option}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{}{ENDDO ,}
+\pfxrow[9]{..}{DO UNTIL=if\_option}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO Wh}}] Insert DO WHILE block
 
 \begin{pfxexample}
-\pfxrow{..}{DO WHILE=if\_option}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{}{ENDDO ,}
+\pfxrow[9]{..}{DO WHILE=if\_option}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DOEXi}}] Insert DOEXIT
 
 \begin{pfxexample}
-\pfxrow{..}{DOEXIT test}
+\pfxrow[11]{..}{DOEXIT test}
 \pfxrow{RI}{}
 \end{pfxexample}
 \item[{\pfxcommand{ELSE}}] Insert ELSE
 
 \begin{pfxexample}
-\pfxrow{..}{ELSE ,}
-\pfxrow{RI}{opcod ,}
+\pfxrow[9]{..}{ELSE ,}
+\pfxrow[11]{RI}{opcod ,}
 \end{pfxexample}
 \item[{\pfxcommand{ELSEI}}] Insert ELSEIF
 
 \begin{pfxexample}
-\pfxrow{..}{ELSEIF test}
-\pfxrow{RI}{opcod}
+\pfxrow[9]{..}{ELSEIF test}
+\pfxrow[11]{RI}{opcod}
 \end{pfxexample}
 \item[{\pfxcommand{EXITI}}] Insert EXITIF
 
 \begin{pfxexample}
-\pfxrow{..}{EXITIF if\_options}
-\pfxrow{RI}{opcod ,}
-\pfxrow{..}{ORELSE ,}
-\pfxrow{RI}{opcod ,}
+\pfxrow[9]{..}{EXITIF if\_options}
+\pfxrow[11]{RI}{opcod ,}
+\pfxrow[9]{..}{ORELSE ,}
+\pfxrow[11]{RI}{opcod ,}
 \end{pfxexample}
 \item[{\pfxcommand{IF}}] Insert IF:
 
 \begin{pfxexample}
-\pfxrow{..}{IF \variable{operand}}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{..}{ELSEIF test,}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{..}{ELSE ,}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{}{ENDIF ,}
+\pfxrow[9]{..}{IF \variable{operand}}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{..}{ELSEIF test,}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{..}{ELSE ,}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDIF ,}
 \end{pfxexample}
 \item[{\pfxcommand{IF option}}] \begin{itemize}
 \item Omitted: Insert period for tabbing
@@ -235,28 +235,40 @@ The prefix commands for the structured programming macros of the High Level Asse
 \pfxrow{..}{...}
 \pfxrow{\variable{nn}RIC}{Blank line \variable{nn}}
 \end{pfxexample}
+\item[{\pfxcommand{ORELS}}] Insert ORELSE
+
+\begin{pfxexample}
+\pfxrow[9]{..}{ORELSE ,}
+\pfxrow[11]{RI}{opcod ,}
+\end{pfxexample}
+\item[{\pfxcommand{OTHER or OTHRW}}] Insert OTHRWISE
+
+\begin{pfxexample}
+\pfxrow[11]{..}{OTHRWISE ,}
+\pfxrow[13]{RI}{opcod ,}
+\end{pfxexample}
 \item[{\pfxcommand{SEArc or STRTS}}] Insert search block
 
 \begin{pfxexample}
-\pfxrow{..}{STRTSRCH do\_options}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{..}{EXITIF if\_options}
-\pfxrow{RI}{\constant{opcod ,}}
-\pfxrow{..}{ORELSE ,}
-\pfxrow{..}{\constant{opcod ,}}
-\pfxrow{RI}{ENDLOOP ,}
-\pfxrow{..}{\constant{opcod ,}}
-\pfxrow{}{ENDSRCH ,}
+\pfxrow[9]{..}{STRTSRCH do\_options}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{..}{EXITIF if\_options}
+\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{..}{ORELSE ,}
+\pfxrow[11]{..}{\constant{opcod ,}}
+\pfxrow[9]{RI}{ENDLOOP ,}
+\pfxrow[11]{..}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDSRCH ,}
 \end{pfxexample}
 \item[{\pfxcommand{SELect}}] Insert SELECT block:
 
 \begin{pfxexample}
-\pfxrow{}{SELECT}
-\pfxrow{..}{\constant{WHEN IF\_test}}
-\pfxrow{RIC}{\constant{opcod ,}}
-\pfxrow{}{OTHRWISE ,}
-\pfxrow{RIC}{\constant{opcod ,}}
-\pfxrow{}{ENDSEL ,}
+\pfxrow[9]{}{SELECT}
+\pfxrow[11]{..}{\constant{WHEN IF\_test}}
+\pfxrow[13]{RIC}{\constant{opcod ,}}
+\pfxrow[11]{}{OTHRWISE ,}
+\pfxrow[13]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDSEL ,}
 \end{pfxexample}
 \item[{\pfxcommand{STAr}}] Put continuation character in column 72
 \item[{\pfxcommand{UC [C\textbar{}column\#]}}] Upper case
@@ -264,15 +276,14 @@ The prefix commands for the structured programming macros of the High Level Asse
 \item[{\pfxcommand{WHEN}}] Insert WHEN clause:
 
 \begin{pfxexample}
-\pfxrow{..}{WHEN IF\_test}
-\pfxrow{RIC}{\constant{opcod ,}}
-\pfxrow{}{\constant{end}}
+\pfxrow[11]{..}{WHEN IF\_test}
+\pfxrow[13]{RIC}{\constant{opcod ,}}
 \end{pfxexample}
 \end{description}
 
 \section*{Prefix macros for REXX}
 
-\constant{GLOBALV PFXREXX} variables override default indentation.
+Under CMS, \constant{GLOBALV PFXREXX} variables override default indentation; under THE the defaults apply.
 
 \begin{description}
 \item[{\pfxcommand{\constant{Indent\_DO}=3}}] 
@@ -290,17 +301,17 @@ The prefix commands for REXX are:
 \begin{pfxexample}
 \pfxrow{..}{do}
 \pfxrow{RI}{}
-\pfxrow{}{\constant{end}}
+\pfxrow[3]{}{\constant{end}}
 \end{pfxexample}
 \item[{\pfxcommand{IF}}] Insert IF:
 
 \begin{pfxexample}
-\pfxrow{..}{if . then do}
+\pfxrow{..}{if \& then do}
 \pfxrow{RI}{}
-\pfxrow{}{\constant{end}}
+\pfxrow[3]{}{\constant{end}}
 \pfxrow{}{else do}
 \pfxrow{RI}{}
-\pfxrow{}{\constant{end}}
+\pfxrow[3]{}{\constant{end}}
 \end{pfxexample}
 \item[{\pfxcommand{RI}}] Repeat insert
 \item[{\pfxcommand{RIC}}] Repeat insert conditional
@@ -308,20 +319,20 @@ The prefix commands for REXX are:
 
 \begin{pfxexample}
 \pfxrow{}{select}
-\pfxrow{..}{\constant{when . then do}}
+\pfxrow[1]{..}{\constant{when \& then do}}
 \pfxrow{RIC}{}
-\pfxrow{}{\constant{end}}
-\pfxrow{}{\constant{otherwise do}}
+\pfxrow[3]{}{\constant{end}}
+\pfxrow[1]{}{\constant{otherwise do}}
 \pfxrow{RIC}{}
-\pfxrow{}{\constant{end}}
-\pfxrow{}{\constant{end}}
+\pfxrow[3]{}{\constant{end}}
+\pfxrow[1]{}{\constant{end}}
 \end{pfxexample}
 \item[{\pfxcommand{WHEN}}] Insert WHEN clause:
 
 \begin{pfxexample}
-\pfxrow{..}{when . then do}
+\pfxrow[1]{..}{when \& then do}
 \pfxrow{RIC}{}
-\pfxrow{}{\constant{end}}
+\pfxrow[3]{}{\constant{end}}
 \end{pfxexample}
 \end{description}
 

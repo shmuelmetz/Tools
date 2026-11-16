@@ -17,6 +17,7 @@
 \ProvidesPackage{pfxmacros}[2026/09/22 semantic markup for prefix-macros docs]
 
 \RequirePackage{array}
+\RequirePackage{fontspec}
 
 % ---- Text-level semantic roles ----
 
@@ -52,13 +53,23 @@
 \newlength{\pfxtextwidth}
 \setlength{\pfxtextwidth}{9.5cm}
 
+% Both columns are set in a monospaced font, as on the editor's screen,
+% so that indentation is measured in character columns. TeX Gyre
+% Cursor has the bold and italic that \constant and \variable need.
+\newfontfamily\pfxmonofont{TeX Gyre Cursor}
+\newlength{\pfxcolumn}
+
 \newenvironment{pfxexample}{%
-  \begin{tabular}{@{}p{\pfxprefixwidth}p{\pfxtextwidth}@{}}
+  \begin{tabular}{|>{\pfxmonofont}p{\pfxprefixwidth}|>{\pfxmonofont}p{\pfxtextwidth}|}
   \hline
 }{%
   \end{tabular}
 }
 % One row: prefix command (may be empty) and its text-area content.
-\newcommand{\pfxrow}[2]{#1 & #2 \\ \hline}
+% The optional argument is the indentation in character columns: the
+% number of blanks the macro puts before the text, so 9 for an HLASM
+% statement starting in column 10.
+\NewDocumentCommand{\pfxrow}{O{0}mm}{%
+  #2 & \settowidth{\pfxcolumn}{0}\hspace*{#1\pfxcolumn}#3 \\ \hline}
 
 \endinput
