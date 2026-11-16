@@ -199,7 +199,9 @@ On 15 Nov 2026 it got:
 ## Priorities
 
 1. Use placeholders that are syntax errors (finding 2). Done 16 Nov 2026:
-   the REXX placeholder is now `&`, in the macros and the documentation.
+   the REXX placeholder is now the literal text `&placeholder`, in the macros
+   and the documentation. On a body line indented 28 columns or more it
+   reaches the mask's `/*` in column 40.
 2. Set HLASM tab stops and single placeholders per field (finding 5).
 3. Add in-editor help and better messages (findings 9 and 11), generated
    from the definitions.

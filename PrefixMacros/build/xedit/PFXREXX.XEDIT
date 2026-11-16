@@ -225,11 +225,11 @@ select
                   Ccol  = Op_col
                   end
                when abbrev(UNTIL,Op1) then do
-                  DO_string = DO_string 'until &'
+                  DO_string = DO_string 'until &placeholder'
                   Ccol = Ccol + 9
                   end
                when abbrev(WHILE,Op1) then do
-                  DO_string = DO_string 'while &'
+                  DO_string = DO_string 'while &placeholder'
                   Ccol = Ccol + 9
                   end
                otherwise do
@@ -248,8 +248,8 @@ select
             Eline  = Cline + 5
             Pd2    = Pad || left('',Indent_IF)
             call Get_mask
-            Ccol   = Ccol + 3            /* on the & of 'if & then do' */
-            COMMAND ':'Iline INPUT pad || 'if & then do'
+            Ccol   = Ccol + 3            /* at &placeholder in 'if &placeholder then do' */
+            COMMAND ':'Iline INPUT pad || 'if &placeholder then do'
             COMMAND          SET   PENDING ON '..'
             COMMAND          ADD
             COMMAND '+1'     SET   PENDING ON 'RI'
@@ -322,7 +322,7 @@ select
             Pd3    = Pd2 || left('',Indent_WHEN)
             call Get_mask
             COMMAND ':'Iline INPUT pad || 'select'
-            COMMAND          INPUT pd2 || 'when & then do'
+            COMMAND          INPUT pd2 || 'when &placeholder then do'
             COMMAND          SET   PENDING ON '..'
             COMMAND          ADD
             COMMAND '+1'     SET   PENDING ON 'RIC'
@@ -361,7 +361,7 @@ select
             Eline  = Cline + 2
             Pd2    = Pad || left('',Indent_WHEN)
             call Get_mask
-            COMMAND ':'Iline INPUT pad || 'when & then do'
+            COMMAND ':'Iline INPUT pad || 'when &placeholder then do'
             COMMAND          ADD
             COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd2'end'
@@ -413,7 +413,7 @@ Get_mask:
       return
    MASK.1 = overlay('/*',MASK.1,40)
    MASK.1 = overlay('*/',MASK.1,70)
-   MASK.1 = overlay('&',MASK.1,Op_col)
+   MASK.1 = overlay('&placeholder',MASK.1,Op_col)
    COMMAND SET MASK IMMED MASK.1
    return
 
