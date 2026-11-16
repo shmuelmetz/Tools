@@ -1,0 +1,3 @@
+Acknowledgements
+Thanks to Adrian Sutherland and the cREXX project for help with the
+compatibility fixes for THE and with the cREXX port.
