@@ -210,6 +210,13 @@ On 15 Nov 2026 it got:
 These belong to the framework's shared macro body and language
 definitions, so they cost little extra once the framework exists.
 
+## Decided to settle in the human-factors overhaul
+
+- Which template lines carry `..` and which carry RI or RIC (for example
+  the search block, where the documentation and the macro disagree). His
+  decision, 16 Nov 2026: this belongs to the overhaul, not to piecemeal
+  fixes.
+
 ## Limits of this analysis
 
 - **No user study:** the ratings are judgments, not measurements.
