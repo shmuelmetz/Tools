@@ -58,8 +58,23 @@ do lang over langs~space~makeArray(' ')
       status = 1
       iterate
       end
+   /* phase B: a language definition, if there is one, supplies the
+      command blocks that replace the source's #commands directive */
+   def = .nil
+   defPath = pfxDir'lang\'lang'.pfx'
+   if stream(defPath, 'C', 'QUERY EXISTS') \= '' then do
+      def = readDefinition(defPath)
+      errors = checkDefinition(def)
+      if errors~items > 0 then do
+         do e over errors
+            say 'pfxgen:' lang'.pfx:' e
+            end
+         status = 1
+         iterate
+         end
+      end
    do host over hosts
-      out = preprocess(lines, host[1])
+      out = preprocess(lines, host[1], def)
       if out == .nil then do
          say 'pfxgen: pfx'lang'.src: unbalanced or unknown directive'
          status = 1
@@ -94,7 +109,7 @@ exit status
  * an unbalanced or unknown directive.  Each stack entry records whether
  * the enclosing context is active and whether this branch is taken. */
 ::routine preprocess
-   use strict arg lines, host
+   use strict arg lines, host, def
    out = .array~new
    stack = .queue~new
    active = .true
@@ -121,6 +136,13 @@ exit status
             if stack~items = 0 then return .nil
             active = stack~pull[1]
             end
+         when directive == '#commands' then do
+            if def == .nil then return .nil
+            if active then
+               do line over emitCommands(def, host)
+                  out~append(line)
+                  end
+            end
          otherwise
             return .nil
          end
@@ -144,3 +166,112 @@ exit status
       s~charOut(line'0D0A'x)
       end
    s~close
+
+/* emitCommands -- Classic Rexx "when" blocks, one per command in the
+ * definition, for the macro's command select.  The macro supplies
+ * Iline, Cline (the first inserted line), Ccol, Indent, Pad, Op1, the
+ * Indent_<unit> variables and the routines Get_mask and (THE)
+ * Insert_line or (XEDIT) Add_line. */
+::routine emitCommands
+   use strict arg def, host
+   out = .array~new
+   I = '         '
+   do cmd over def['CMDS']
+      name = cmd['NAME']
+      rows = cmd['ROWS']
+      out~append(I"when abbrev('"name"',Command_name,"cmd['MIN']") then do")
+      out~append(I"   Eline  = Cline +" rows~items)
+      /* the first row, by operand variant */
+      if cmd['VARS']~items = 0 then do
+         out~append(I'   First  =' rexxText(cmd['FIRST']))
+         call emitCursor out, I'   ', cmd['CURSOR'], cmd, def
+         end
+      else do
+         out~append(I'   select')
+         do var over cmd['VARS']
+            select
+               when var['OPERAND'] == '-' then
+                  out~append(I"      when Op1 = '' then do")
+               when var['OPERAND'] == '*' then
+                  out~append(I'      otherwise do')
+               otherwise
+                  out~append(I"      when abbrev('"var['OPERAND']~translate"',Op1,"var['MIN']") then do")
+               end
+            out~append(I'         First  =' rexxText(var['FIRST']))
+            call emitCursor out, I'         ', var['CURSOR'], cmd, def
+            out~append(I'         end')
+            end
+         out~append(I'      end')
+         end
+      out~append(I"   COMMAND ':'Iline INPUT Pad || First")
+      /* the other rows */
+      do row over rows
+         cols = unitExpr(row['INDENT'])
+         if row['PEND'] \== .nil then do
+            out~append(I'   Op_col = Indent + 1 +' cols)
+            out~append(I'   call Get_mask')
+            if host == 'THE' then
+               out~append(I"   call Insert_line" row['PEND']", ''")
+            else do
+               out~append(I'   call Add_line')
+               out~append(I"   COMMAND '+1'     SET   PENDING ON '"row['PEND']"'")
+               end
+            end
+         else if cols == '0' then
+            out~append(I'   COMMAND          INPUT Pad ||' rexxText(row['TEXT']))
+         else
+            out~append(I"   COMMAND          INPUT Pad || left(''," cols") ||" rexxText(row['TEXT']))
+         end
+      out~append(I'   end')
+      end
+   return out
+
+/* emitCursor -- set Cline and Ccol: a number is an offset in the first
+ * row; "body" is the first pending row at its indentation; a row's own
+ * :cursor. puts it on that row; no cursor keeps the macro's default. */
+::routine emitCursor
+   use strict arg out, ind, cursor, cmd, def
+   rows = cmd['ROWS']
+   do r = 1 to rows~items
+      if rows[r]['CURSOR'] \== .nil then do
+         out~append(ind'Cline  = Cline +' r)
+         out~append(ind'Ccol   = Indent + 1 +' unitExpr(rows[r]['INDENT']) '+' rows[r]['CURSOR'])
+         return
+         end
+      end
+   if cursor == .nil then return
+   if cursor == 'body' then do
+      do r = 1 to rows~items
+         if rows[r]['PEND'] \== .nil then do
+            out~append(ind'Cline  = Cline +' r)
+            out~append(ind'Ccol   = Indent + 1 +' unitExpr(rows[r]['INDENT']))
+            return
+            end
+         end
+      return
+      end
+   out~append(ind'Ccol   = Indent + 1 +' cursor)
+
+/* unitExpr -- "DO" or "SELECT+WHEN" as a Rexx expression of the
+ * Indent_<unit> variables; '0' for none */
+::routine unitExpr
+   use strict arg units
+   if units == .nil then return '0'
+   expr = ''
+   do unit over units~makeArray('+')
+      if expr \== '' then expr = expr '+ '
+      expr = expr'Indent_'unit
+      end
+   return expr
+
+/* rexxText -- template text as a Rexx expression: quoted, quotes
+ * doubled, %op replaced by the operand Op1 */
+::routine rexxText
+   use strict arg text
+   if text == .nil then text = ''
+   parse var text before '%op' after
+   q = "'"before~changeStr("'", "''")"'"
+   if text~pos('%op') = 0 then return q
+   return q '|| Op1 ||' "'"after~changeStr("'", "''")"'"
+
+::requires 'pfxdef.cls'

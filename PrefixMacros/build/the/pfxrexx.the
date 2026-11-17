@@ -298,63 +298,6 @@ select
                   call Error_msg 'Invalid column designator' Op1
                end
             end
-         when Command_name = 'DO' then do
-            if debug then trace ?i
-            Op_col = Ccol + Indent_DO
-            Eline  = Cline + 2
-            Pd2    = Pad || left('',Indent_DO)
-            call Get_mask
-            select
-               when Op1 = '' then do
-                  DO_string = 'do'
-                  Cline  = Cline + 1
-                  Ccol   = Op_col
-                  end
-               when abbrev(FOREVER,Op1,1) then do
-                  DO_string = 'do forever'
-                  Cline  = Cline + 1
-                  Ccol   = Op_col
-                  end
-               when abbrev(UNTIL,Op1) then do
-                  DO_string = 'do until &placeholder'
-                  Ccol = Ccol + 9
-                  end
-               when abbrev(WHILE,Op1) then do
-                  DO_string = 'do while &placeholder'
-                  Ccol = Ccol + 9
-                  end
-               otherwise do
-                  DO_string = 'do' Op1
-                  Ccol = Ccol + 3
-                  end
-               end
-            COMMAND ':'Iline INPUT pad || DO_string
-            call Insert_line RIC, ''
-            COMMAND          INPUT Pd2'end'
-            end
-         when Command_name = 'IF' then do
-            Op_col = Ccol + Indent_IF
-            Eline  = Cline + 5
-            Pd2    = Pad || left('',Indent_IF)
-            call Get_mask
-            Ccol   = Ccol + 3            /* at &placeholder in 'if &placeholder then do' */
-            COMMAND ':'Iline INPUT pad'if &placeholder then do'
-            call Insert_line RIC, ''
-            COMMAND          INPUT Pd2'end'
-            COMMAND          INPUT pad'else do'
-            call Insert_line RIC, ''
-            COMMAND          INPUT Pd2'end'
-            end
-         when abbrev(OTHERWISE,Command_name,4) then do
-            Cline = Cline + 1
-            Op_col = Indent + Indent_WHEN + 1
-            Eline  = Cline + 2
-            Pd2    = Pad || left('',Indent_WHEN)
-            call Get_mask
-            COMMAND ':'Iline INPUT pad || 'otherwise do'
-            call Insert_line RIC, ''
-            COMMAND          INPUT Pd2'end'
-            end
          when Command_name = 'RI' | Command_name = 'RIC' then do
             if word(CURLINE.5,1) = 'NEW' & Command_name = 'RIC' then do
                /* Delete unaltered RIC line */
@@ -374,46 +317,103 @@ select
                Set_pend = 'CLINE'
             call Insert_line Set_pend, ''
             end
-         when abbrev('SELECT',Command_name,3) then do
-            /* Place cursor after keyword WHEN */
-            Cline  = Cline + 1
-            Ccol   = Indent + Indent_SELECT + 6
-            Op_col = Indent + Indent_SELECT + Indent_WHEN + 1
-            Eline  = Cline + 6
-            Pd2    = Pad || left('',Indent_SELECT)
-            Pd3    = Pd2 || left('',Indent_WHEN)
-            call Get_mask
-            COMMAND ':'Iline INPUT pad || 'select'
-            COMMAND          INPUT pd2 || 'when &placeholder then do'
-            call Insert_line RIC, ''
-            COMMAND          INPUT Pd3'end'
-            COMMAND          INPUT pd2'otherwise do'
-            call Insert_line RIC, ''
-            COMMAND          INPUT Pd3'end'
-            COMMAND          INPUT Pd2'end'
-            end
-         when abbrev(WHEN,Command_name,3) then do
-            /* Place cursor after keyword WHEN */
-            Ccol   = Indent + 6
-            Op_col = Indent + Indent_WHEN + 1
+         when abbrev('DO',Command_name,2) then do
             Eline  = Cline + 2
-            Pd2    = Pad || left('',Indent_WHEN)
+            select
+               when Op1 = '' then do
+                  First  = 'do'
+                  Cline  = Cline + 1
+                  Ccol   = Indent + 1 + Indent_DO
+                  end
+               when abbrev('FOREVER',Op1,1) then do
+                  First  = 'do forever'
+                  Cline  = Cline + 1
+                  Ccol   = Indent + 1 + Indent_DO
+                  end
+               when abbrev('UNTIL',Op1,1) then do
+                  First  = 'do until &placeholder'
+                  Ccol   = Indent + 1 + 9
+                  end
+               when abbrev('WHILE',Op1,1) then do
+                  First  = 'do while &placeholder'
+                  Ccol   = Indent + 1 + 9
+                  end
+               otherwise do
+                  First  = 'do ' || Op1 || ''
+                  Ccol   = Indent + 1 + 3
+                  end
+               end
+            COMMAND ':'Iline INPUT Pad || First
+            Op_col = Indent + 1 + Indent_DO
             call Get_mask
-            COMMAND ':'Iline INPUT pad || 'when &placeholder then do'
             call Insert_line RIC, ''
-            COMMAND          INPUT Pd2'end'
+            COMMAND          INPUT Pad || left('', Indent_DO) || 'end'
             end
-         when abbrev(ITERATE,Command_name,4) | ,
-              abbrev(LEAVE,  Command_name,3) then do
-            /* ITERATE or LEAVE at the statement indentation; the cursor
-               goes after the keyword, where a loop name may be typed */
-            if abbrev(ITERATE,Command_name,4) then
-               Keyword = 'iterate'
-            else
-               Keyword = 'leave'
-            Ccol   = Indent + length(Keyword) + 2
-            Eline  = Cline
-            COMMAND ':'Iline INPUT pad || Keyword
+         when abbrev('IF',Command_name,2) then do
+            Eline  = Cline + 5
+            First  = 'if &placeholder then do'
+            Ccol   = Indent + 1 + 3
+            COMMAND ':'Iline INPUT Pad || First
+            Op_col = Indent + 1 + Indent_IF
+            call Get_mask
+            call Insert_line RIC, ''
+            COMMAND          INPUT Pad || left('', Indent_IF) || 'end'
+            COMMAND          INPUT Pad || 'else do'
+            Op_col = Indent + 1 + Indent_IF
+            call Get_mask
+            call Insert_line RIC, ''
+            COMMAND          INPUT Pad || left('', Indent_IF) || 'end'
+            end
+         when abbrev('SELECT',Command_name,3) then do
+            Eline  = Cline + 7
+            First  = 'select'
+            Cline  = Cline + 1
+            Ccol   = Indent + 1 + Indent_SELECT + 5
+            COMMAND ':'Iline INPUT Pad || First
+            COMMAND          INPUT Pad || left('', Indent_SELECT) || 'when &placeholder then do'
+            Op_col = Indent + 1 + Indent_SELECT + Indent_WHEN
+            call Get_mask
+            call Insert_line RIC, ''
+            COMMAND          INPUT Pad || left('', Indent_SELECT + Indent_WHEN) || 'end'
+            COMMAND          INPUT Pad || left('', Indent_SELECT) || 'otherwise do'
+            Op_col = Indent + 1 + Indent_SELECT + Indent_WHEN
+            call Get_mask
+            call Insert_line RIC, ''
+            COMMAND          INPUT Pad || left('', Indent_SELECT + Indent_WHEN) || 'end'
+            COMMAND          INPUT Pad || left('', Indent_SELECT) || 'end'
+            end
+         when abbrev('WHEN',Command_name,3) then do
+            Eline  = Cline + 2
+            First  = 'when &placeholder then do'
+            Ccol   = Indent + 1 + 5
+            COMMAND ':'Iline INPUT Pad || First
+            Op_col = Indent + 1 + Indent_WHEN
+            call Get_mask
+            call Insert_line RIC, ''
+            COMMAND          INPUT Pad || left('', Indent_WHEN) || 'end'
+            end
+         when abbrev('OTHERWISE',Command_name,4) then do
+            Eline  = Cline + 2
+            First  = 'otherwise do'
+            Cline  = Cline + 1
+            Ccol   = Indent + 1 + Indent_WHEN
+            COMMAND ':'Iline INPUT Pad || First
+            Op_col = Indent + 1 + Indent_WHEN
+            call Get_mask
+            call Insert_line RIC, ''
+            COMMAND          INPUT Pad || left('', Indent_WHEN) || 'end'
+            end
+         when abbrev('ITERATE',Command_name,4) then do
+            Eline  = Cline + 0
+            First  = 'iterate'
+            Ccol   = Indent + 1 + 8
+            COMMAND ':'Iline INPUT Pad || First
+            end
+         when abbrev('LEAVE',Command_name,3) then do
+            Eline  = Cline + 0
+            First  = 'leave'
+            Ccol   = Indent + 1 + 6
+            COMMAND ':'Iline INPUT Pad || First
             end
          otherwise
             call Error_msg 'Unknown prefix subcommand'

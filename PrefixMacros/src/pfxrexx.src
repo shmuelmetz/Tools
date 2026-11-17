@@ -355,97 +355,6 @@ select
                end
             end
 #endif /* THE */
-         when Command_name = 'DO' then do
-#ifdef THE
-            if debug then trace ?i
-#endif /* THE */
-            Op_col = Ccol + Indent_DO
-            Eline  = Cline + 2
-            Pd2    = Pad || left('',Indent_DO)
-            call Get_mask
-#ifndef THE
-            DO_string = 'do'
-#endif /* ! THE */
-            select
-               when Op1 = '' then do
-#ifndef THE
-                  /* bare DO (Rexx has no ONCE keyword); cursor to body line */
-                  Cline = Cline + 1
-                  Ccol  = Op_col
-                  end
-               when abbrev(FOREVER,Op1) then do
-                  DO_string = DO_string 'forever'
-                  Cline = Cline + 1
-                  Ccol  = Op_col
-#else /* THE */
-                  DO_string = 'do'
-                  Cline  = Cline + 1
-                  Ccol   = Op_col
-                  end
-               when abbrev(FOREVER,Op1,1) then do
-                  DO_string = 'do forever'
-                  Cline  = Cline + 1
-                  Ccol   = Op_col
-#endif /* THE */
-                  end
-               when abbrev(UNTIL,Op1) then do
-#ifndef THE
-                  DO_string = DO_string 'until &placeholder'
-#else /* THE */
-                  DO_string = 'do until &placeholder'
-#endif /* THE */
-                  Ccol = Ccol + 9
-                  end
-               when abbrev(WHILE,Op1) then do
-#ifndef THE
-                  DO_string = DO_string 'while &placeholder'
-#else /* THE */
-                  DO_string = 'do while &placeholder'
-#endif /* THE */
-                  Ccol = Ccol + 9
-                  end
-               otherwise do
-#ifndef THE
-                  DO_string = DO_string Op1
-#else /* THE */
-                  DO_string = 'do' Op1
-#endif /* THE */
-                  Ccol = Ccol + 3
-                  end
-               end
-            COMMAND ':'Iline INPUT pad || DO_string
-#ifndef THE
-            call Add_line
-            COMMAND '+1'     SET   PENDING ON 'RIC'
-#else /* THE */
-            call Insert_line RIC, ''
-#endif /* THE */
-            COMMAND          INPUT Pd2'end'
-            end
-         when Command_name = 'IF' then do
-            Op_col = Ccol + Indent_IF
-            Eline  = Cline + 5
-            Pd2    = Pad || left('',Indent_IF)
-            call Get_mask
-            Ccol   = Ccol + 3            /* at &placeholder in 'if &placeholder then do' */
-#ifndef THE
-            COMMAND ':'Iline INPUT pad || 'if &placeholder then do'
-            call Add_line
-            COMMAND '+1'     SET   PENDING ON 'RIC'
-#else /* THE */
-            COMMAND ':'Iline INPUT pad'if &placeholder then do'
-            call Insert_line RIC, ''
-#endif /* THE */
-            COMMAND          INPUT Pd2'end'
-            COMMAND          INPUT pad'else do'
-#ifndef THE
-            call Add_line
-            COMMAND '+1'     SET   PENDING ON 'RIC'
-#else /* THE */
-            call Insert_line RIC, ''
-#endif /* THE */
-            COMMAND          INPUT Pd2'end'
-            end
 #ifndef THE
          when Command_name = 'LC' | Command_name = 'LOC' then do
             select
@@ -469,21 +378,6 @@ select
                end
             end
 #endif /* ! THE */
-         when abbrev(OTHERWISE,Command_name,4) then do
-            Cline = Cline + 1
-            Op_col = Indent + Indent_WHEN + 1
-            Eline  = Cline + 2
-            Pd2    = Pad || left('',Indent_WHEN)
-            call Get_mask
-            COMMAND ':'Iline INPUT pad || 'otherwise do'
-#ifndef THE
-            call Add_line
-            COMMAND '+1'     SET   PENDING ON 'RIC'
-#else /* THE */
-            call Insert_line RIC, ''
-#endif /* THE */
-            COMMAND          INPUT Pd2'end'
-            end
          when Command_name = 'RI' | Command_name = 'RIC' then do
 #ifndef THE
             if CURLINE.5 = NEW & Command_name = 'RIC' then do
@@ -518,34 +412,6 @@ select
             call Insert_line Set_pend, ''
 #endif /* THE */
             end
-         when abbrev('SELECT',Command_name,3) then do
-            /* Place cursor after keyword WHEN */
-            Cline  = Cline + 1
-            Ccol   = Indent + Indent_SELECT + 6
-            Op_col = Indent + Indent_SELECT + Indent_WHEN + 1
-            Eline  = Cline + 6
-            Pd2    = Pad || left('',Indent_SELECT)
-            Pd3    = Pd2 || left('',Indent_WHEN)
-            call Get_mask
-            COMMAND ':'Iline INPUT pad || 'select'
-            COMMAND          INPUT pd2 || 'when &placeholder then do'
-#ifndef THE
-            call Add_line
-            COMMAND '+1'     SET   PENDING ON 'RIC'
-#else /* THE */
-            call Insert_line RIC, ''
-#endif /* THE */
-            COMMAND          INPUT Pd3'end'
-            COMMAND          INPUT pd2'otherwise do'
-#ifndef THE
-            call Add_line
-            COMMAND '+1'     SET   PENDING ON 'RIC'
-#else /* THE */
-            call Insert_line RIC, ''
-#endif /* THE */
-            COMMAND          INPUT Pd3'end'
-            COMMAND          INPUT Pd2'end'
-            end
 #ifndef THE
          when Command_name = 'UC' | Command_name = 'UPC' then do
             select
@@ -568,37 +434,8 @@ select
                   call Error_msg 'Invalid column designator' Op1
                end
             end
-         when abbrev('WHEN', Command_name,3) then do
-#else /* THE */
-         when abbrev(WHEN,Command_name,3) then do
 #endif /* THE */
-            /* Place cursor after keyword WHEN */
-            Ccol   = Indent + 6
-            Op_col = Indent + Indent_WHEN + 1
-            Eline  = Cline + 2
-            Pd2    = Pad || left('',Indent_WHEN)
-            call Get_mask
-            COMMAND ':'Iline INPUT pad || 'when &placeholder then do'
-#ifndef THE
-            call Add_line
-            COMMAND '+1'     SET   PENDING ON 'RIC'
-#else /* THE */
-            call Insert_line RIC, ''
-#endif /* THE */
-            COMMAND          INPUT Pd2'end'
-            end
-         when abbrev(ITERATE,Command_name,4) | ,
-              abbrev(LEAVE,  Command_name,3) then do
-            /* ITERATE or LEAVE at the statement indentation; the cursor
-               goes after the keyword, where a loop name may be typed */
-            if abbrev(ITERATE,Command_name,4) then
-               Keyword = 'iterate'
-            else
-               Keyword = 'leave'
-            Ccol   = Indent + length(Keyword) + 2
-            Eline  = Cline
-            COMMAND ':'Iline INPUT pad || Keyword
-            end
+#commands
          otherwise
             call Error_msg 'Unknown prefix subcommand'
          end
