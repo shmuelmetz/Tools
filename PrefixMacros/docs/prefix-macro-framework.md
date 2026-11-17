@@ -1,6 +1,17 @@
 # Prefix-macro framework: design
 
-Status: design for review, 15 Nov 2026. Nothing below is implemented yet.
+Status, 16 Nov 2026: **phase A is implemented.** Each language has one
+source, `pfx\src\pfx<lang>.src`: the macro itself, with the lines that
+differ between the editors in `#ifdef THE` / `#ifndef THE` / `#else` /
+`#endif` blocks. `pfx\gen\pfxgen.rex` builds `pfx\out	he\pfx<lang>.the`
+and `pfx\outíit\PFX<LANG>.XEDIT` from it, and `make pfx` adds the THE
+acknowledgements (`scripts\stamp-pfx-credits.rex`) and copies changed
+macros to `web\source\`. The generated macros were checked byte for byte
+against the tested, committed ones. A fix is now made once, in the `.src`.
+
+**Phase B** (the rest of this document) is still to do: a shared engine
+plus one definition file per language, so that adding a language means
+writing data, not a macro.
 (Written with the help of Claude, an AI engine, for review.)
 
 ## Goal
@@ -19,8 +30,13 @@ copying and editing a 500-line macro.
 The intent the generated macros must serve: make input of prettyprinted code
 easier. In particular:
 
-- `..` goes on template lines that must disappear if unchanged;
-- RI and RIC go on lines that must remain;
+- every template body line is RIC: a completed body line gets a new body
+  line below it, and an untouched one is deleted (decided 16 Nov 2026,
+  on the 3270 block model: fill the whole template, then one Enter);
+- keyword lines carry no pending command, and the macro inserts the
+  full control structure;
+- the template mask (`MASK.1`, built from the user's own mask) applies
+  only to the body lines the macro adds;
 - the cursor starts on the first placeholder;
 - indentation follows the language's rules (HLASM: column 10 outside
   control structures, +2 per level; REXX: the documented `Indent_*` values).

@@ -1,0 +1,757 @@
+/* PFXREXX XEDIT implements XEDIT prefix commands for structured input
+   of REXX. The user should have profiles for the appropriate file
+   types, e.g., EXEC, XEDIT, that issue the commands:
+     SET PREFIX SYNONYM ..     PFXREXX
+#ifdef THE
+     SET PREFIX SYNONYM CLINE  PFXREXX
+     SET PREFIX SYNONYM CLC    PFXREXX
+     SET PREFIX SYNONYM CL     PFXREXX
+     SET PREFIX SYNONYM CLO    PFXREXX
+     SET PREFIX SYNONYM CLOW   PFXREXX
+     SET PREFIX SYNONYM CLOWE  PFXREXX
+     SET PREFIX SYNONYM CUC    PFXREXX
+     SET PREFIX SYNONYM CU     PFXREXX
+     SET PREFIX SYNONYM CUP    PFXREXX
+     SET PREFIX SYNONYM CUPP   PFXREXX
+     SET PREFIX SYNONYM CUPPE  PFXREXX
+#endif /* THE */
+     SET PREFIX SYNONYM DO     PFXREXX
+     SET PREFIX SYNONYM IF     PFXREXX
+#ifndef THE
+     SET PREFIX SYNONYM LC     PFXREXX
+     SET PREFIX SYNONYM OTHE   PFXREXX
+#endif /* ! THE */
+     SET PREFIX SYNONYM OTHE   PFXREXX
+     SET PREFIX SYNONYM OTHER  PFXREXX
+     SET PREFIX SYNONYM RI     PFXREXX
+     SET PREFIX SYNONYM RIC    PFXREXX
+     SET PREFIX SYNONYM SEL    PFXREXX
+     SET PREFIX SYNONYM SELE   PFXREXX
+     SET PREFIX SYNONYM SELEC  PFXREXX
+#ifndef THE
+     SET PREFIX SYNONYM UC     PFXREXX
+#endif /* ! THE */
+     SET PREFIX SYNONYM WHE    PFXREXX
+     SET PREFIX SYNONYM WHEN   PFXREXX
+
+   The user can issue GLOBALV commands to override some of the
+   indentation defaults:
+     GLOBALV SELECT PFXREXX SET Indent_DO     3
+     GLOBALV SELECT PFXREXX SET Indent_IF     3
+     GLOBALV SELECT PFXREXX SET Indent_label  3
+     GLOBALV SELECT PFXREXX SET Indent_SELECT 1
+     GLOBALV SELECT PFXREXX SET Indent_WHEN   2
+*/
+
+/*
+   Variable usage:
+#ifdef THE
+   Bump          Adjustment after ADD
+#endif /* THE */
+   Ccol          Cursor column
+   Cline         Cursor line
+   Command_name  Name of prefix command
+#ifdef THE
+   debug         Requests diagnostic output & trace
+   Def_env       Default environment address(); should be THE or XEDIT
+#endif /* THE */
+   Eline         Line number of end
+   Indent        Indentation of inserted text
+#ifdef THE
+   MASK.1        Insertion mask (EXTRACT /MASK/)
+#endif /* THE */
+   Op_col        Column number of potential keyword
+   Op_old        Potential keyword from :Pline
+   Pad           Pad for 1st level insertion
+   Pd2           Pad for 2nd level insertion
+   Pd3           Pad for 3rd level insertion
+   Pline         Line number of prefix command
+*/
+
+/* Initial housekeeping */
+
+trace n
+/* trace ?i */
+#ifndef THE
+debug = 1
+#else /* THE */
+debug = 0
+#endif /* THE */
+
+Def_env = address()
+if Def_env = THE then do
+   Bump = ''                  /* THE CLP after ADD differs from XEDIT */
+   parse upper source opsys calltype path
+   parse upper arg Pref Command_name Func Pline Op1 Op2 Op3 .
+#ifdef THE
+   if Func = CLEAR then exit 0
+#endif /* THE */
+   Indent_DO     = 3
+   Indent_IF     = 3
+   Indent_label  = 3
+   Indent_SELECT = 1
+   Indent_WHEN   = 2
+   end
+else do
+   Bump = '+1'
+   parse upper source opsys calltype fn ft fm Command_name Default_any
+   parse upper arg Pref Func Pline Op1 Op2 Op3 .
+   address CMS GLOBALV SELECT PFXREXX ,
+                       GET Indent_DO Indent_IF Indent_SELECT Indent_WHEN
+   if Indent_DO     = '' then
+      Indent_DO     = 3
+   if Indent_IF     = '' then
+      Indent_IF     = 3
+   if Indent_label  = '' then
+      Indent_label  = 3
+   if Indent_SELECT = '' then
+      Indent_SELECT = 1
+   if Indent_WHEN   = '' then
+      Indent_WHEN   = 2
+   end
+if debug then do
+   say 'address()='Def_env              ,
+       'source='source 'opsys='opsys    ,
+       'calltype='calltype 'path='path
+   parse version version
+   say 'parse version='version
+   say 'Pref='Pref 'Command_name='Command_name 'Func='Func 'Pline='Pline 'Op1='Op1 'Op2='Op2 'Op3='Op3
+   end
+':'Pline COMMAND SET PENDING OFF
+
+#ifndef THE
+
+if Pref ª= Prefix then do
+#else /* THE */
+if Pref \= Prefix then do
+#endif /* THE */
+   COMMAND EMSG PFXREXX 'is a prefix macro.'
+   exit
+   end
+Count = 1
+COMMAND PRESERVE
+#ifdef THE
+SET IMPOS OFF
+#endif /* THE */
+
+/* Split out leading command count */
+select
+   when datatype(Op1,W) then do
+      Count = Op1
+      Op1   = Op2
+      Op2   = Op3
+      Op3   = ''
+      end
+   when datatype(left(Op1,1),W) then do
+      Count = left(Op1,1)
+      Op1   = delstr(Op1,1)
+      end
+   otherwise
+      nop
+   end
+
+/* split out leading or trailing numeric operand */
+select
+   when datatype(Op1,W) then
+      nop
+   when datatype(left(Op1,1),W) then do
+#ifndef THE
+      if Op3 ª= '' then
+         call Error_msg 'Too many operands'
+#else /* THE */
+      if Op3 \= '' then
+         call Error_msg 'Too many operands for' Command_name Op1 Op2 Op3
+#endif /* THE */
+      i = verify(Op1,'01223456789')
+      Op3 = Op2
+      Op2 = substr(Op1,i)
+      Op1 = delstr(Op1,i)
+      end
+   when datatype(right(Op1,1),W) then do
+#ifndef THE
+      if Op3 ª= '' then
+         call Error_msg 'Too many operands'
+#else /* THE */
+      if Op3 \= '' then
+         call Error_msg 'Too many operands for' Command_name Op1 Op2 Op3
+#endif /* THE */
+      Op3 = Op2
+      i = length(Op1) + 1 - verify(reverse(Op1),'01223456789')
+      Op2 = substr(Op1,i)
+      Op1 = delstr(Op1,i)
+      end
+   otherwise
+      nop
+   end
+
+if \datatype(Count,'W') then call Error_msg 'Invalid repetition count'
+if Count < 1 | Count > 99 then call Error_msg 'Expected count from 1 to 99'
+
+#ifndef THE
+/* FLSCREEN and MASK not available in THE */
+'COMMAND          EXTRACT /FLSCREEN /FNAME /MASK /ZONE'
+#else /* THE */
+if Def_env = XEDIT then
+   'COMMAND          EXTRACT /FLSCREEN /FNAME /MASK /ZONE'
+else
+   'COMMAND          EXTRACT           /FNAME /MASK /ZONE'
+#endif /* THE */
+Mask_user = MASK.1                /* the user's own insertion mask      */
+#ifdef THE
+
+#endif /* THE */
+'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
+
+/* calculate indentation based on the presence of a label or statement */
+Op_old = word(CURLINE.3,1)
+Op_col = wordindex(CURLINE.3,1)
+#ifdef THE
+if debug then
+   say 'Op_old='Op_old 'Op_col='Op_col
+#endif /* THE */
+Colon  = verify(Op_old, ':', M)
+select
+   when Op_old = '' then do
+      /* No indent after empty line */
+      Op_col = 1
+      end
+   when Colon > 0 then do
+      /* Potential keyword is first word after label */
+      /* Don't assume separating blank */
+      parse var Op_old . ':' Op_new
+      If Op_new = '' then
+         /* Indent Indent_label after standalone label */
+         Op_col = Op_col + Indent_label
+      else do
+         /* Indent to first word after label */
+         Op_col = verify(CURLINE.3, ' ', N, Op_col + Colon)
+         Op_old = strip(Op_new)
+         end
+      end
+   otherwise
+      /* indent to nonlabel */
+      nop
+   end
+Indent = Op_col - 1
+/* Upper case potential keyword */
+Op_old = translate(Op_old)
+
+/* Adjust indentation based on command and statement keyword */
+select
+   when Op_old = DO     then
+      Indent = Indent + Indent_DO
+   when Op_old = ELSE   | ,
+        Op_old = IF     then
+      Indent = Indent + Indent_IF
+   when Op_old = OTHERWISE | ,
+        Op_old = WHEN      then
+      /* indent anything but WHEN or OTHERWISE after a WHEN or OTHERWISE */
+#ifndef THE
+      if ªabbrev(OTHERWISE,Command_name,4) & ,
+         ªabbrev(WHEN,     Command_name,3) then
+#else /* THE */
+      if \abbrev(OTHERWISE,Command_name,4) & ,
+         \abbrev(WHEN,     Command_name,3) then
+#endif /* THE */
+         Indent = Indent + Indent_WHEN
+   when Op_old = SELECT then
+      Indent = Indent + Indent_SELECT
+   otherwise
+      if abbrev(WHEN,     Command_name,3) then
+         Indent = Indent - Indent_WHEN
+   end
+Indent = max(0,Indent)
+Op_col = Indent + 1
+Pad    = left('',Indent)
+
+/* Mainline logic */
+#ifdef THE
+if debug then trace ?i
+#endif /* THE */
+
+select
+   when Func = SET | Func = SHADOW then do Pass = 1 to Count
+      Iline = Pline
+      Cline = Pline + 1
+      Eline = Cline + 1
+      COMMAND SET SCOPE ALL
+      Ccol  = Indent + 1
+      select
+#ifndef THE
+         when Command_name = '..' then do
+#else /* THE */
+         when Command_name = '..'    | ,
+              Command_name = 'CLINE' then do
+#endif /* THE */
+            Ccol = 0
+            call Get_mask
+#ifndef THE
+            if CURLINE.5 = NEW & CURLINE.3 = MASK.1 then do
+#else /* THE */
+            if word(CURLINE.5,1) = 'NEW' & CURLINE.3 = MASK.1 then do
+#endif /* THE */
+               COMMAND DELETE 1
+               leave
+               end
+            end
+#ifdef THE
+         when Command_name = 'CLC' | abbrev('CLOWE',Command_name) then do
+            Ccol = 0
+            select
+               when Op1 = '' then do
+                  /* Lower case current zone */
+                  COMMAND ':'Pline LOWERCAS Count
+                  leave
+                  end
+               when Op1 = 'C' then do
+                  /* Lower case up to cursor */
+                  call set_case LOWERCAS, CURSOR.4
+                  leave
+                  end
+               when datatype(Op1,'W') then do
+                  /* Lower case up to specified column */
+                  call set_case LOWERCAS, Op1
+                  leave
+                  end
+               otherwise
+                  call Error_msg 'Invalid column designator' Op1
+               end
+            end
+         when Command_name = 'CUC' | abbrev('CUPPE',Command_name) then do
+            Ccol = 0
+            select
+               when Op1 = '' then do
+                  /* Upper case current zone */
+                  COMMAND ':'Pline UPPERCAS Count
+                  leave
+                  end
+               when Op1 = 'C' then do
+                  /* Upper case up to cursor */
+                  call set_case UPPERCAS, CURSOR.4
+                  leave
+                  end
+               when datatype(Op1,'W') then do
+                  /* Upper case up to specified column */
+                  call set_case UPPERCAS, Op1
+                  leave
+                  end
+               otherwise
+                  call Error_msg 'Invalid column designator' Op1
+               end
+            end
+#endif /* THE */
+         when Command_name = 'DO' then do
+#ifdef THE
+            if debug then trace ?i
+#endif /* THE */
+            Op_col = Ccol + Indent_DO
+            Eline  = Cline + 2
+            Pd2    = Pad || left('',Indent_DO)
+            call Get_mask
+#ifndef THE
+            DO_string = 'do'
+#endif /* ! THE */
+            select
+               when Op1 = '' then do
+#ifndef THE
+                  /* bare DO (Rexx has no ONCE keyword); cursor to body line */
+                  Cline = Cline + 1
+                  Ccol  = Op_col
+                  end
+               when abbrev(FOREVER,Op1) then do
+                  DO_string = DO_string 'while' 1
+                  Cline = Cline + 1
+                  Ccol  = Op_col
+#else /* THE */
+                  DO_string = 'do'
+                  Cline  = Cline + 1
+                  Ccol   = Op_col
+                  end
+               when abbrev(FOREVER,Op1,1) then do
+                  DO_string = 'do while' 1
+                  Cline  = Cline + 1
+                  Ccol   = Op_col
+#endif /* THE */
+                  end
+               when abbrev(UNTIL,Op1) then do
+#ifndef THE
+                  DO_string = DO_string 'until &placeholder'
+#else /* THE */
+                  DO_string = 'do until &placeholder'
+#endif /* THE */
+                  Ccol = Ccol + 9
+                  end
+               when abbrev(WHILE,Op1) then do
+#ifndef THE
+                  DO_string = DO_string 'while &placeholder'
+#else /* THE */
+                  DO_string = 'do while &placeholder'
+#endif /* THE */
+                  Ccol = Ccol + 9
+                  end
+               otherwise do
+#ifndef THE
+                  DO_string = DO_string Op1
+#else /* THE */
+                  DO_string = 'do' Op1
+#endif /* THE */
+                  Ccol = Ccol + 3
+                  end
+               end
+            COMMAND ':'Iline INPUT pad || DO_string
+#ifndef THE
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
+#else /* THE */
+            call Insert_line RIC, ''
+#endif /* THE */
+            COMMAND          INPUT Pd2'end'
+            end
+         when Command_name = 'IF' then do
+            Op_col = Ccol + Indent_IF
+            Eline  = Cline + 5
+            Pd2    = Pad || left('',Indent_IF)
+            call Get_mask
+            Ccol   = Ccol + 3            /* at &placeholder in 'if &placeholder then do' */
+#ifndef THE
+            COMMAND ':'Iline INPUT pad || 'if &placeholder then do'
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
+#else /* THE */
+            COMMAND ':'Iline INPUT pad'if &placeholder then do'
+            call Insert_line RIC, ''
+#endif /* THE */
+            COMMAND          INPUT Pd2'end'
+            COMMAND          INPUT pad'else do'
+#ifndef THE
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
+#else /* THE */
+            call Insert_line RIC, ''
+#endif /* THE */
+            COMMAND          INPUT Pd2'end'
+            end
+#ifndef THE
+         when Command_name = 'LC' then do
+            select
+               when Op1 = '' then do
+                  /* Lower case current zone */
+                  COMMAND ':'Pline LOWERCAS Count
+                  leave
+                  end
+               when Op1 = 'C' then do
+                  /* Lower case up to cursor */
+                  call set_case LOWERCAS, CURSOR.4
+                  leave
+                  end
+               when datatype(Op1,'W') then do
+                  /* Lower case up to specified column */
+                  call set_case LOWERCAS, Op1
+                  leave
+                  end
+               otherwise
+                  call Error_msg 'Invalid column designator' Op1
+               end
+            end
+#endif /* ! THE */
+         when abbrev(OTHERWISE,Command_name,4) then do
+            Cline = Cline + 1
+            Op_col = Indent + Indent_WHEN + 1
+            Eline  = Cline + 2
+            Pd2    = Pad || left('',Indent_WHEN)
+            call Get_mask
+            COMMAND ':'Iline INPUT pad || 'otherwise do'
+#ifndef THE
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
+#else /* THE */
+            call Insert_line RIC, ''
+#endif /* THE */
+            COMMAND          INPUT Pd2'end'
+            end
+         when Command_name = 'RI' | Command_name = 'RIC' then do
+#ifndef THE
+            if CURLINE.5 = NEW & Command_name = 'RIC' then do
+#else /* THE */
+            if word(CURLINE.5,1) = 'NEW' & Command_name = 'RIC' then do
+#endif /* THE */
+               /* Delete unaltered RIC line */
+               call Get_mask
+               if CURLINE.3 = MASK.1 then do
+                  COMMAND DELETE 1
+                  Ccol = 0
+                  leave
+                  end
+               end
+            Op_col = Ccol
+            call Get_mask
+#ifndef THE
+            COMMAND ':'Iline SET PENDING ON '..'
+            call Add_line
+            if Pass = 1 then do
+               COMMAND ':'Cline SET PENDING ON 'RIC'min(Count,99)
+               end
+            else do
+               COMMAND ':'Cline SET PENDING ON '..'
+               end
+#else /* THE */
+            COMMAND ':'Iline SET PENDING ON 'CLINE'
+            if Pass = 1 then
+               Set_pend = 'RIC'min(Count,99)
+            else
+               Set_pend = 'CLINE'
+            call Insert_line Set_pend, ''
+#endif /* THE */
+            end
+         when abbrev('SELECT',Command_name,3) then do
+            /* Place cursor after keyword WHEN */
+            Cline  = Cline + 1
+            Ccol   = Indent + Indent_SELECT + 6
+            Op_col = Indent + Indent_SELECT + Indent_WHEN + 1
+            Eline  = Cline + 6
+            Pd2    = Pad || left('',Indent_SELECT)
+            Pd3    = Pd2 || left('',Indent_WHEN)
+            call Get_mask
+            COMMAND ':'Iline INPUT pad || 'select'
+            COMMAND          INPUT pd2 || 'when &placeholder then do'
+#ifndef THE
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
+#else /* THE */
+            call Insert_line RIC, ''
+#endif /* THE */
+            COMMAND          INPUT Pd3'end'
+            COMMAND          INPUT pd2'otherwise do'
+#ifndef THE
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
+#else /* THE */
+            call Insert_line RIC, ''
+#endif /* THE */
+            COMMAND          INPUT Pd3'end'
+            COMMAND          INPUT Pd2'end'
+            end
+#ifndef THE
+         when Command_name = 'UC' then do
+            select
+               when Op1 = '' then do
+                  /* Upper case current zone */
+                  COMMAND ':'Pline UPPERCAS Count
+                  leave
+                  end
+               when Op1 = 'C' then do
+                  /* Upper case up to cursor */
+                  call set_case UPPERCAS, CURSOR.4
+                  leave
+                  end
+               when datatype(Op1,'W') then do
+                  /* Upper case up to specified column */
+                  call set_case UPPERCAS, Op1
+                  leave
+                  end
+               otherwise
+                  call Error_msg 'Invalid column designator' Op1
+               end
+            end
+         when abbrev('WHEN', Command_name,3) then do
+#else /* THE */
+         when abbrev(WHEN,Command_name,3) then do
+#endif /* THE */
+            /* Place cursor after keyword WHEN */
+            Ccol   = Indent + 6
+            Op_col = Indent + Indent_WHEN + 1
+            Eline  = Cline + 2
+            Pd2    = Pad || left('',Indent_WHEN)
+            call Get_mask
+            COMMAND ':'Iline INPUT pad || 'when &placeholder then do'
+#ifndef THE
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
+#else /* THE */
+            call Insert_line RIC, ''
+#endif /* THE */
+            COMMAND          INPUT Pd2'end'
+            end
+         otherwise
+            call Error_msg 'Unknown prefix subcommand'
+         end
+      end
+   when Func = CLEAR then do
+      /* Not needed at this time */
+      COMMAND RESTORE
+      exit
+      end
+   otherwise do
+      COMMAND EMSG 'Func='Func'? Should be SET, SHADOW or CLEAR.'
+      COMMAND RESTORE
+      exit
+      end
+   end
+
+/* Final housekeeping */
+
+COMMAND RESTORE
+if Cline > 0 & Ccol > 0 then do
+#ifdef THE
+   if Debug then
+      say COMMAND ':'Cline CURSOR FILE Cline Ccol PRIORITY 30
+#endif /* THE */
+   COMMAND ':'Cline CURSOR FILE Cline Ccol PRIORITY 30
+#ifndef THE
+   COMMAND EXTRACT '/'PENDING
+   if Pending.0 > 0 then
+#else /* THE */
+   COMMAND EXTRACT '/'PENDING '*'
+   if rc > 0 then do
+      COMMAND EMSG 'rc='rc 'in' COMMAND EXTRACT '/'PENDING '*'
+#endif /* THE */
+      exit
+#ifndef THE
+   if Line.1 > Pline then
+      Flscreen.1 = Flscreen.1 + Count * (Eline - Iline)
+   if Cline < Flscreen.1 | Eline > Flscreen.2 then do
+      select
+         when abbrev(CURLINE.1,M) then
+            Pline = Cline
+         when CURLINE.1 < 0 then
+            Pline = max(Cline,Eline+3+CURLINE.1)
+         otherwise
+            nop
+#else /* THE */
+      end
+   if Pending.0 > 0 then do
+      COMMAND REFRESH                   /* Hack due to XEDIT incompatibity */
+      exit
+      end
+   if Def_env = XEDIT then do
+      /* THE doesn't have EXTRACT|QUERY|SET fLSCREEN */
+      if Line.1 > Pline then
+         Flscreen.1 = Flscreen.1 + Count * (Eline - Iline)
+      if Cline < Flscreen.1 | Eline > Flscreen.2 then do
+         select
+            when abbrev(CURLINE.1,M) then
+               Pline = Cline
+            when CURLINE.1 < 0 then
+               Pline = max(Cline,Eline+3+CURLINE.1)
+            otherwise
+               nop
+            end
+         push ':'Pline CURSOR FILE Cline Ccol PRIORITY 70
+#endif /* THE */
+         end
+#ifndef THE
+      push ':'Pline CURSOR FILE Cline Ccol PRIORITY 70
+#endif /* ! THE */
+      end
+   end
+#ifdef THE
+COMMAND REFRESH
+#endif /* THE */
+exit
+
+/* Subroutines */
+
+Get_mask:
+#ifndef THE
+   /* Build the template mask in MASK.1 from the user's mask; Add_line
+      applies it only to the body lines it adds                         */
+#else /* THE */
+   procedure expose MASK.1 Mask_user Op_col
+   /* Build the template mask in MASK.1 from the user's mask: comment
+      delimiters in columns 40 and 70, '.' at the statement column.
+      Insert_line applies it only to the body lines it adds.            */
+#endif /* THE */
+   if Op_col = 0 then
+      return
+   MASK.1 = overlay('/*',Mask_user,40)
+   MASK.1 = overlay('*/',MASK.1,70)
+   MASK.1 = overlay('.',MASK.1,Op_col)
+   return
+
+#ifndef THE
+Add_line:
+   /* ADD one line under the template mask, then restore the user's mask */
+   COMMAND SET MASK IMMED MASK.1
+   COMMAND ADD
+   COMMAND SET MASK IMMED Mask_user
+#else /* THE */
+Insert_line:
+   procedure expose MASK.1 Mask_user
+   parse arg Set_pend Text
+   if Text = '' then do
+      /* the template mask applies to this body line only */
+      COMMAND SET MASK IMMED MASK.1
+      COMMAND ADD 1
+      COMMAND SET MASK IMMED Mask_user
+      end
+   else
+      COMMAND INPUT Text
+   if Set_pend \= '' then
+      COMMAND SET PENDING ON Set_pend
+#endif /* THE */
+   return
+
+Set_case:
+#ifndef THE
+   /* case is command name LOWERCAS or UPPERCAS */
+#else /* THE */
+   procedure expose Count Pline ZONE.
+   /* arg(1) case   is command name LOWERCAS or UPPERCAS */
+   /* arg(2) cursor is rightmust column to be upper or lower cased */
+#endif /* THE */
+   parse upper arg case, cursor
+   RZONE = min(cursor,ZONE.2)
+   if ZONE.1 > RZONE then
+      return
+   COMMAND ':'Pline SET ZONE ZONE.1 RZone
+   COMMAND          case Count
+   return
+
+/* Not currently used */
+Set_upper:
+   /* Do not change case beyond cursor */
+   RZone = min(i,ZONE.2)
+   if LZone > RZone then
+      return
+   Zone_text = substr(CURLINE.3,LZone,RZone-LZone+1)
+#ifndef THE
+   if verify(Zone_text, xrange('a','z'), MATCH) ª= 0 then do
+#else /* THE */
+   if verify(Zone_text, xrange('a','z'), MATCH) \= 0 then do
+#endif /* THE */
+      COMMAND ':'Pline SET ZONE LZone RZone
+      COMMAND          UPPERCAS 1
+      end
+   return
+
+Error_msg:
+#ifndef THE
+   if Count = 1 & ªdatatype(Op1,W) then
+#else /* THE */
+   if Count = 1 & \datatype(Op1,W) then
+#endif /* THE */
+      Text = Command_name Op1
+   else
+      Text = Count || Command_name Op1
+#ifndef THE
+   if datatypw(Op1,'W') ª= datatypw(Op2,'W') then
+#else /* THE */
+   if datatype(Op1,'W') \= datatype(Op2,'W') then
+#endif /* THE */
+      Text = Text || Op2
+   else
+      Text = Text    Op2
+   Text = left(Text Op3, 6)
+#ifdef THE
+   if debug then say arg(1)':' Count Op1 Op2 Op3
+#endif /* THE */
+   COMMAND EMSG arg(1)':' Count Op1 Op2 Op3
+#ifdef THE
+   COMMAND RESTORE
+#endif /* THE */
+   COMMAND ':'Pline SET PENDING ERROR Text
+#ifndef THE
+   exit
+#else /* THE */
+   exit 1
+#endif /* THE */
