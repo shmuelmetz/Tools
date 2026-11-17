@@ -141,9 +141,12 @@ if Count < 1 | Count > 99 then call Error_msg 'Expected count from 1 to 99'
 Mask_user = MASK.1                /* the user's own insertion mask      */
 'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
 
+/* Find the governing line, or the comment context (Find_context) */
+call Find_context
+
 /* calculate indentation based on the presence of a label or statement */
-Op_old = word(CURLINE.3,1)
-Op_col = wordindex(CURLINE.3,1)
+Op_old = word(Text,1)
+Op_col = wordindex(Text,1)
 Colon  = verify(Op_old, ':', M)
 select
    when Op_old = '' then do
@@ -159,13 +162,23 @@ select
          Op_col = Op_col + Indent_label
       else do
          /* Indent to first word after label */
-         Op_col = verify(CURLINE.3, ' ', N, Op_col + Colon)
+         Op_col = verify(Text, ' ', N, Op_col + Colon)
          Op_old = strip(Op_new)
          end
       end
    otherwise
       /* indent to nonlabel */
       nop
+   end
+if Comment_col > 0 then do
+   /* the line that opens a block comment */
+   Op_old = ''
+   Op_col = Comment_col
+   end
+if Comment_col < 0 then do
+   /* a later line of a block comment: local context */
+   Op_old = ''
+   Op_col = Local_col
    end
 Indent = Op_col - 1
 /* Upper case potential keyword */
@@ -225,7 +238,7 @@ select
                   Ccol  = Op_col
                   end
                when abbrev(FOREVER,Op1) then do
-                  DO_string = DO_string 'while' 1
+                  DO_string = DO_string 'forever'
                   Cline = Cline + 1
                   Ccol  = Op_col
                   end
@@ -262,7 +275,7 @@ select
             COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd2'end'
             end
-         when Command_name = 'LC' then do
+         when Command_name = 'LC' | Command_name = 'LOC' then do
             select
                when Op1 = '' then do
                   /* Lower case current zone */
@@ -335,7 +348,7 @@ select
             COMMAND          INPUT Pd3'end'
             COMMAND          INPUT Pd2'end'
             end
-         when Command_name = 'UC' then do
+         when Command_name = 'UC' | Command_name = 'UPC' then do
             select
                when Op1 = '' then do
                   /* Upper case current zone */
@@ -367,6 +380,18 @@ select
             call Add_line
             COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd2'end'
+            end
+         when abbrev(ITERATE,Command_name,4) | ,
+              abbrev(LEAVE,  Command_name,3) then do
+            /* ITERATE or LEAVE at the statement indentation; the cursor
+               goes after the keyword, where a loop name may be typed */
+            if abbrev(ITERATE,Command_name,4) then
+               Keyword = 'iterate'
+            else
+               Keyword = 'leave'
+            Ccol   = Indent + length(Keyword) + 2
+            Eline  = Cline
+            COMMAND ':'Iline INPUT pad || Keyword
             end
          otherwise
             call Error_msg 'Unknown prefix subcommand'
@@ -410,13 +435,103 @@ exit
 
 /* Subroutines */
 
+Find_context:
+   /* Sets Text (the line that governs the indentation), Comment_col
+      and Local_col (block-comment context), and leaves CURLINE. and
+      CURSOR. extracted for the command's line again.                  */
+   procedure expose Pline Text Comment_col Local_col CURLINE. CURSOR.
+   /* Is the command inside a block comment? The nearest comment delimiter
+      at or above the command's line decides: an opening one with no
+      closing one after it. On the line that opens the comment, the insert
+      goes Indent_comment columns right of the "/"; on a later line of the
+      comment, it follows the local context, the indentation of that line
+      (or of the nearest non-blank line above it in the comment).          */
+   Indent_comment = 3
+   Comment_col    = 0
+   Local_col      = 0
+   Lnum           = Pline
+   Text           = CURLINE.3
+   do while Lnum > 0
+      if Local_col = 0 then
+         Local_col = verify(Text, ' ')
+      Open  = lastpos('/*', Text)
+      Close = lastpos('*/', Text)
+      if Open > 0 | Close > 0 then do
+         if Open > Close then do
+            if Lnum = Pline then
+               Comment_col = Open + Indent_comment
+            else
+               Comment_col = -1
+            end
+         leave
+         end
+      Lnum = Lnum - 1
+      if Lnum > 0 then do
+         'COMMAND :'Lnum 'EXTRACT /CURLINE'
+         Text = CURLINE.3
+         end
+      end
+   if Local_col = 0 then
+      Local_col = 1
+   'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
+
+   /* Find the line that governs the indentation: the command's own line
+      or, when that line is a comment-only line, part of a block comment
+      or the continuation of a statement (the line above ends with a
+      comma), or a blank line, the nearest line above that starts a
+      statement.                                                         */
+   Lnum       = Pline
+   Text       = CURLINE.3
+   In_comment = 0
+   do while Lnum > 0
+      Above = ''
+      if Lnum > 1 then do
+         'COMMAND :'||(Lnum-1) 'EXTRACT /CURLINE'
+         Above = CURLINE.3
+         end
+      /* is this line the continuation of the one above? */
+      Code = Above
+      if right(strip(Code),2) = '*/' & lastpos('/*',Code) > 0 then
+         Code = left(Code, lastpos('/*',Code) - 1)
+      Continued = right(strip(Code),1) = ','
+      T = strip(Text)
+      select
+         when T = '' then
+            nop
+         when In_comment then do
+            /* inside a block comment: its first line ends the skip */
+            if pos('/*',T) > 0 then do
+               In_comment = 0
+               if left(T,2) \= '/*' then
+                  leave
+               end
+            end
+         when left(T,2) = '/*' & right(T,2) = '*/' then
+            nop
+         when pos('*/',T) > 0 & pos('/*',T) = 0 then
+            In_comment = 1
+         when Continued then
+            nop
+         otherwise
+            leave
+         end
+      Lnum = Lnum - 1
+      Text = Above
+      end
+   'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
+   return
+
 Get_mask:
    /* Build the template mask in MASK.1 from the user's mask; Add_line
       applies it only to the body lines it adds                         */
    if Op_col = 0 then
       return
-   MASK.1 = overlay('/*',Mask_user,40)
-   MASK.1 = overlay('*/',MASK.1,70)
+   MASK.1 = Mask_user
+   if Comment_col = 0 then do
+      /* no comment delimiters in the mask inside a block comment */
+      MASK.1 = overlay('/*',MASK.1,40)
+      MASK.1 = overlay('*/',MASK.1,70)
+      end
    MASK.1 = overlay('.',MASK.1,Op_col)
    return
 

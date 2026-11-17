@@ -198,11 +198,19 @@ On 15 Nov 2026 it got:
 
 ## Priorities
 
-1. Use placeholders that are syntax errors (finding 2). Done 16 Nov 2026:
-   the REXX placeholder is now the literal text `&placeholder`, in the macros
-   and the documentation. On a body line indented 28 columns or more it
-   reaches the mask's `/*` in column 40.
-2. Set HLASM tab stops and single placeholders per field (finding 5).
+1. Use placeholders that are syntax errors (finding 2). His rule, 16 Nov
+   2026: "if you want a syntax error then use &placeholder". The REXX
+   keyword-line placeholder is the literal text `&placeholder`, in the
+   macros and the documentation. The REXX mask is his original one, at his
+   direction (16 Nov 2026): `/*` in column 40, `*/` in column 70 and `.` at
+   the statement column, applied only to the body lines the macro adds.
+2. Set HLASM tab stops and single placeholders per field (finding 5). His
+   points, 16 Nov 2026: tab stops are global to the file, not scoped to a
+   line, so they can't follow the opcode column from one nesting level to
+   the next, and resetting them on each insertion is meaningless.
+   `&placeholder` is for REXX; HLASM placeholders such as `R?` are already
+   syntax errors. A single placeholder per field was this analysis's
+   suggestion, not his request.
 3. Add in-editor help and better messages (findings 9 and 11), generated
    from the definitions.
 4. Make the documentation show the cursor (finding 12).

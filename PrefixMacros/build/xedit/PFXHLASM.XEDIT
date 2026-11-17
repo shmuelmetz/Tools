@@ -176,27 +176,37 @@ if Count < 1 | Count > 99 then call Error_msg 'Expected count from 1 to 99'
 Mask_user = MASK.1                /* the user's own insertion mask      */
 'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
 
-/* Except for comment lines, locate the opcode */
-/* this code does not look backwards for continuation indicators */
-Op_old    = ''
-Op_col    = 10
-CURLINE.3 = left(CURLINE.3,71)
-select
-   when left(CURLINE.3,1) = '*'  | ,
-        left(CURLINE.3,2) = '.*' | ,
-        CURLINE.3 = ''           then do
-      Op_old = ''
-      Op_col = 10
+/* Locate the opcode that governs the indentation: on the command's
+   line or, when that line has none (comment, blank line, label only,
+   continuation), on the nearest line above that has one. A line is a
+   continuation when the line above it is non-blank in column 72.     */
+Op_old = ''
+Op_col = 0
+Lnum   = Pline
+Text   = CURLINE.3
+do while Lnum > 0
+   Above = ''
+   if Lnum > 1 then do
+      'COMMAND :'||(Lnum-1) 'EXTRACT /CURLINE'
+      Above = CURLINE.3
       end
-   when left(CURLINE.3,1) = '' then do
-      Op_old = word(CURLINE.3,1)
-      Op_col = wordindex(CURLINE.3,1)
+   Text = left(Text,71)
+   if substr(Above,72,1) = ' ' & left(Text,1) \= '*' & ,
+      left(Text,2) \= '.*' & Text \= '' then do
+      if left(Text,1) = ' ' then do
+         Op_old = word(Text,1)
+         Op_col = wordindex(Text,1)
+         end
+      else do
+         Op_old = word(Text,2)
+         Op_col = wordindex(Text,2)
+         end
+      if Op_col > 0 then leave
       end
-   otherwise do
-      Op_old = word(CURLINE.3,2)
-      Op_col = wordindex(CURLINE.3,2)
-      end
+   Lnum = Lnum - 1
+   Text = Above
    end
+'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
 
 if Op_col = 0 then Op_col = 10
 

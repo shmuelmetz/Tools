@@ -1,0 +1,98 @@
+/* REXX */
+/* Profile to set up the PFXxxx prefix macros */
+
+/* trace ?i */
+HLAs  = ASM HLASM
+REXXs = CMD EXEC KEX REX REXX SPF THE THERC XED XEDIT
+Ftype = translate(Ftype.1())
+select
+   when wordpos(Ftype,HLAs) > 0 then do
+      Pfx_ops = '..'                               ,
+                'cline'  /* alias of .. for THE */ ,
+                'asml'   /* ASMLEAVE in DO      */ ,
+                'asmle'  /* ASMLEAVE in DO      */ ,
+                'case'                            ,
+                'casee'  /* CASENTRY            */ ,
+                'clc'    /* Column lower case   */ ,
+                'cl'     /* Column lower case   */ ,
+                'clo'    /* Column lower case   */ ,
+                'clow'   /* Column lower case   */ ,
+                'cuc'    /* Column upper case   */ ,
+                'cu'     /* Column upper case   */ ,
+                'cup'    /* Column upper case   */ ,
+                'cupp'   /* Column upper case   */ ,
+                'cuppe'  /* Column upper case   */ ,
+                'do'                               ,
+                'doex'   /* DOEXIT   in DO      */ ,
+                'doexi'  /* DOEXIT   in DO      */ ,
+                'else'                             ,
+                'elsei'  /* ELSEIF              */ ,
+                'endif'                            ,
+                'exiti'  /* EXITIF   in SEARCH  */ ,
+                'if'                               ,
+                'itera'  /* ITERATE  in DO      */ ,
+                'orels'  /* ORELSE   in SEARCH  */ ,
+                'other'  /* OTHRWISE in SELECT  */ ,
+                'othrw'  /* OTHRWISE in SELECT  */ ,
+                'ri'                               ,
+                'ric'                              ,
+                'sea'    /* STRTSRCH            */ ,
+                'sear'   /* STRTSRCH            */ ,
+                'searc'  /* STRTSRCH            */ ,
+                'sel'    /* SELECT              */ ,
+                'sele'   /* SELECT              */ ,
+                'selec'  /* SELECT              */ ,
+                'sta'    /* STAR                */ ,
+                'star'   /* STAR                */ ,
+                'strts'  /* STRTSRCH            */ ,
+                'unst'   /* UNSTAR              */ ,
+                'unsta'  /* UNSTAR              */ ,
+                'whe'    /* WHEN     in SELECT  */ ,
+                'when'   /* WHEN     in SELECT  */
+      Macro_name = PFXHLASM
+      end
+   when wordpos(Ftype,REXXs) > 0 then do
+      Pfx_ops = '..'                    ,
+                'cline'  /* alias of .. for THE */ ,
+                'clc'    /* Column lower case   */ ,
+                'cl'     /* Column lower case   */ ,
+                'clo'    /* Column lower case   */ ,
+                'clow'   /* Column lower case   */ ,
+                'cuc'    /* Column upper case   */ ,
+                'cu'     /* Column upper case   */ ,
+                'cup'    /* Column upper case   */ ,
+                'cupp'   /* Column upper case   */ ,
+                'cuppe'  /* Column upper case   */ ,
+                'do'                               ,
+                'iter'   /* ITERATE             */ ,
+                'itera'  /* ITERATE             */ ,
+                'loc'                              ,
+                'if'                               ,
+                'lea'    /* LEAVE               */ ,
+                'leav'   /* LEAVE               */ ,
+                'other'  /* OTHERWISE           */ ,
+                'ri'                               ,
+                'ri'                               ,
+                'ric'                              ,
+                'sel'    /* SELECT              */ ,
+                'sele'   /* SELECT              */ ,
+                'selec'  /* SELECT              */ ,
+                'upc'                              ,
+                'whe'    /* WHEN                */ ,
+                'when'   /* WHEN                */
+      Macro_name = PFXREXX
+      end
+   otherwise
+      exit
+   end
+
+/* Unlike XEDIT, the names of line macros are case sensitive in THE */
+parse source opsys
+do i = 1 to words(Pfx_ops)
+   Pfx_lc = word(Pfx_ops,i)
+   Pfx_uc = translate(Pfx_lc)
+   if opsys \= CMS then
+      SET PREFIX SYNONYM Pfx_lc Macro_name
+   SET PREFIX SYNONYM Pfx_uc Macro_name
+   end
+

@@ -9,6 +9,23 @@ acknowledgements (`scripts\stamp-pfx-credits.rex`) and copies changed
 macros to `web\source\`. The generated macros were checked byte for byte
 against the tested, committed ones. A fix is now made once, in the `.src`.
 
+**Phase B decisions, 17 Nov 2026 (his):**
+- Classic Rexx is *only* for the generated macros, which must run under
+  CMS, TSO/E-style IBM REXX and Regina. The engine that interprets the
+  definitions is ooRexx, part of the generator: it emits the macro code.
+- The look-back belongs in a subroutine of the generated macro, at least
+  for REXX and PL/I: each language supplies its own look-back routine.
+- REXX look-back: skip comment-only lines, block comments, continuation
+  lines (the line above ends with a comma) and blank lines. On the line
+  that opens a block comment the insert goes 3 columns right of the
+  `/`; on a later line of the comment it follows the local context; the
+  mask then has no comment delimiters.
+- DO FOREVER is preferred in languages that have it (REXX does: TSO/E,
+  REXX/VM and OS/2 REXX references).
+- First step done: `pfx\langexx.pfx` (the REXX definition) and
+  `pfx\gen\pfxdoc.rex` (reads and checks a definition, writes the
+  documentation fragment `pfx\out\doc\pfx-<lang>.tex`).
+
 **Phase B** (the rest of this document) is still to do: a shared engine
 plus one definition file per language, so that adding a language means
 writing data, not a macro.
