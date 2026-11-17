@@ -1,6 +1,6 @@
 /* Developed with AI assistance from Claude Opus 5.5 (Anthropic) -- 17 Nov 2026 */
 /* pfxdef.cls -- shared by pfxgen.rex and pfxdoc.rex: read and check a
- * prefix-macro language definition (pfx\lang\<lang>.pfx).  See
+ * prefix-macro language definition (lang\<lang>.pfx).  See
  * pfxdoc.rex for the format.
  *
  * Author: Seymour J. Metz (H: Shmuel)

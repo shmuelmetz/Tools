@@ -59,6 +59,27 @@ Needs ooRexx 5.0 or later (`json.cls`).
 groupsio2mbox file.json [file.json ...]
 ```
 
+### PrefixMacros (REXX macros for THE and XEDIT)
+
+Prefix macros that insert prettyprinted control structures for REXX and
+for the HLASM Toolkit structured macros, in THE and in XEDIT under CMS.
+Each language has one common source (`src/`) and, as the framework
+grows, a definition file (`lang/`); an ooRexx generator (`gen/`) writes
+both editors' macros in Classic Rexx. The generated macros are committed
+in `build/`; the documentation (PDF, ODT, slides) goes in each release's
+zip. `setup/` holds the THE profile and setup macro.
+
+```
+make pfx        # regenerate build/ from the sources
+make check      # fail if build/ is out of date
+make docs       # build the documentation
+make release    # zip build/, setup/ and the documentation
+make export     # copy them to the web site (PERSONAL_WEB)
+```
+
+Design notes: `docs/prefix-macro-framework.md` and
+`docs/prefix-macro-human-factors.md`.
+
 ## Techniques
 
 Papers on programming techniques, in TeX (build with `xelatex`, twice).

@@ -1,0 +1,18 @@
+# generated: macros and documentation fragments (the macros are copied
+# into build/, which is committed)
+out/
+# documentation builds go in the release zip, not the repository
+Documentation/*.pdf
+Documentation/*.odt
+Documentation/*.odp
+Documentation/*.pptx
+!Documentation/pfx-reference.odt
+Documentation/*.aux
+Documentation/*.log
+Documentation/*.out
+Documentation/*.toc
+Documentation/*.nav
+Documentation/*.snm
+Documentation/*.vrb
+Documentation/*.synctex.gz
+Documentation/*.expanded.tex

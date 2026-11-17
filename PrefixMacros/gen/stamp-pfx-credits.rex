@@ -12,7 +12,7 @@
  *
  * Arguments:
  *   credits-file  plain text, one comment line per line
- *   macro         a THE macro, e.g. web\source\pfxrexx.the
+ *   macro         a THE macro, e.g. out\the\pfxrexx.the
  *
  * Exit: 0 success, 1 usage or file error.
  *

@@ -2,7 +2,7 @@
 /* pfxgen.rex
  *
  * Build the THE and XEDIT versions of the prefix macros from one common
- * source per language (pfx\src\pfx<lang>.src), so that a fix is made
+ * source per language (src\pfx<lang>.src), so that a fix is made
  * once.  Phase A of docs\prefix-macro-framework.md: the source is the
  * macro itself, with the lines that differ between the editors marked
  *
@@ -17,14 +17,14 @@
  *
  * Output, CRLF line ends, bytes otherwise unchanged (the XEDIT sources
  * use the CMS not sign, X'AA'):
- *    pfx\out\the\pfx<lang>.the
- *    pfx\out\xedit\PFX<LANG>.XEDIT
+ *    out\the\pfx<lang>.the
+ *    out\xedit\PFX<LANG>.XEDIT
  * The THE acknowledgements are added afterwards by
- * scripts\stamp-pfx-credits.rex (the GNUmakefile "pfx" target does both
- * and copies the results to web\source\).
+ * gen\stamp-pfx-credits.rex (the GNUmakefile "pfx" target does both
+ * and copies the results to build\).
  *
  * Usage:
- *   rexx pfx\gen\pfxgen.rex [lang ...]     default: every pfx\src\*.src
+ *   rexx gen\pfxgen.rex [lang ...]     default: every src\*.src
  *
  * Exit code: 0 done, 1 a source has an unbalanced or unknown directive
  * or could not be read.
