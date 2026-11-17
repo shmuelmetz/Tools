@@ -218,6 +218,14 @@ definitions, so they cost little extra once the framework exists.
   the search block, where the documentation and the macro disagree). His
   decision, 16 Nov 2026: this belongs to the overhaul, not to piecemeal
   fixes.
+- Done 16 Nov 2026, on the 3270 block model (fill the whole template, one
+  Enter): every template body line is RIC, so a completed body line gets a
+  new body line below it and an untouched one is deleted; keyword lines
+  carry no pending command; the macros still insert the full control
+  structure. The template mask (`MASK.1`, built from the user's mask) is
+  applied only to the body lines ADD inserts, then the user's mask is
+  restored. Tested in CRXTHE (REXX DO, IF, SELECT; HLASM IF); the XEDIT
+  versions were not run.
 
 ## Limits of this analysis
 

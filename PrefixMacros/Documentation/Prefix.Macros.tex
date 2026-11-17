@@ -29,6 +29,8 @@ To use these macros, you must issue appropriate \constant{SET PREFIX SYNONYM} co
 
 Note that each XEDIT file does SET PENDING commands for the macros \constant{..}, \constant{RI} and \constant{RIC}, but that you are also allowed to key them in yourself. Under CMS you can use GLOBALV to override some indentation defaults; under THE the defaults apply. The documentation for each prefix command shows any command set pending prior to the inserted text.
 
+On a 3270 you fill in the whole template and then press Enter once. Each body line of a template is set pending \constant{RIC}: a body line you complete stays, and a new body line is inserted below it; a body line left as inserted is deleted. Keyword lines carry no pending command, so the whole control structure stays.
+
 \constant{RI} and \constant{RIC} are slightly more complex. \constant{RIC} with no user input deletes itself; otherwise the command does a \constant{SET PENDING ..} and inserts a blank line. A repeated \constant{RI} or \constant{RIC}, e.g., \constant{3RI}, behaves differently for the first line and subsequent lines. For the first line of cc\constant{RI} or cc\constant{RIC}, it does a \constant{SET PENDING RIC}cc on the inserted blank line; for subsequent lines it does a \constant{SET PENDING ..}.
 
 The LC and \constant{UC} commands translate to lower and upper case. By default they translate everything within the current zone, but an operand of \constant{C} requests translation only up to the cursor column and a numeric operand requests translation only up to the specified column.
@@ -104,114 +106,114 @@ The prefix commands for the structured programming macros of the High Level Asse
 \item[{\pfxcommand{ASMLea}}] Insert ASMLEAVE
 
 \begin{pfxexample}
-\pfxrow[11]{..}{ASMLEAVE label}
-\pfxrow{RI}{}
+\pfxrow[11]{}{ASMLEAVE label}
+\pfxrow{RIC}{}
 \end{pfxexample}
 \item[{\pfxcommand{CASE}}] Insert CASE
 
 \begin{pfxexample}
-\pfxrow[11]{..}{CASE ?}
-\pfxrow[13]{RI}{\constant{Opcod ,}}
+\pfxrow[11]{}{CASE ?}
+\pfxrow[13]{RIC}{\constant{Opcod ,}}
 \end{pfxexample}
 \item[{\pfxcommand{CASEE or CASEN}}] Insert CASENTRY block
 
 \begin{pfxexample}
 \pfxrow[9]{}{CASENTRY R?,POWER=?,VECTOR=B}
-\pfxrow[11]{..}{\constant{CASE}}
-\pfxrow[13]{RI}{\constant{opcod ,}}
+\pfxrow[11]{}{\constant{CASE}}
+\pfxrow[13]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDCASE ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO}}] Insert DO ONCE block:
 
 \begin{pfxexample}
-\pfxrow[9]{..}{DO ONCE}
-\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{DO ONCE}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{\constant{1DO}\variable{nn}}}] Insert DO FROM Rnn block:
 
 \begin{pfxexample}
-\pfxrow[9]{..}{DO FROM=(R\variable{nn})}
-\pfxrow[11]{RI}{\constant{opcod}}
+\pfxrow[9]{}{DO FROM=(R\variable{nn})}
+\pfxrow[11]{RIC}{\constant{opcod}}
 \pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO By}}] Insert DO FROM BY block:
 
 \begin{pfxexample}
-\pfxrow[9]{..}{DO FROM=(R?),BY=(R?)}
-\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{DO FROM=(R?),BY=(R?)}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{\constant{DO B}n}}] Insert DO FROM BY Rn block:
 
 \begin{pfxexample}
-\pfxrow[9]{..}{DO FROM=(R?),BY=(R\variable{n})}
-\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{DO FROM=(R?),BY=(R\variable{n})}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO FO or DO In}}] Insert DO forever block:
 
 \begin{pfxexample}
-\pfxrow[9]{..}{DO INF}
-\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{DO INF}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO FR}}] Insert DO FROM block:
 
 \begin{pfxexample}
-\pfxrow[9]{..}{DO FROM=(R?)}
-\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{DO FROM=(R?)}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO Un}}] Insert DO UNTIL block:
 
 \begin{pfxexample}
-\pfxrow[9]{..}{DO UNTIL=if\_option}
-\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{DO UNTIL=if\_option}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DO Wh}}] Insert DO WHILE block
 
 \begin{pfxexample}
-\pfxrow[9]{..}{DO WHILE=if\_option}
-\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{DO WHILE=if\_option}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDDO ,}
 \end{pfxexample}
 \item[{\pfxcommand{DOEXi}}] Insert DOEXIT
 
 \begin{pfxexample}
-\pfxrow[11]{..}{DOEXIT test}
-\pfxrow{RI}{}
+\pfxrow[11]{}{DOEXIT test}
+\pfxrow{RIC}{}
 \end{pfxexample}
 \item[{\pfxcommand{ELSE}}] Insert ELSE
 
 \begin{pfxexample}
-\pfxrow[9]{..}{ELSE ,}
-\pfxrow[11]{RI}{opcod ,}
+\pfxrow[9]{}{ELSE ,}
+\pfxrow[11]{RIC}{opcod ,}
 \end{pfxexample}
 \item[{\pfxcommand{ELSEI}}] Insert ELSEIF
 
 \begin{pfxexample}
-\pfxrow[9]{..}{ELSEIF test}
-\pfxrow[11]{RI}{opcod}
+\pfxrow[9]{}{ELSEIF test}
+\pfxrow[11]{RIC}{opcod}
 \end{pfxexample}
 \item[{\pfxcommand{EXITI}}] Insert EXITIF
 
 \begin{pfxexample}
-\pfxrow[9]{..}{EXITIF if\_options}
-\pfxrow[11]{RI}{opcod ,}
-\pfxrow[9]{..}{ORELSE ,}
-\pfxrow[11]{RI}{opcod ,}
+\pfxrow[9]{}{EXITIF if\_options}
+\pfxrow[11]{RIC}{opcod ,}
+\pfxrow[9]{}{ORELSE ,}
+\pfxrow[11]{RIC}{opcod ,}
 \end{pfxexample}
 \item[{\pfxcommand{IF}}] Insert IF:
 
 \begin{pfxexample}
-\pfxrow[9]{..}{IF \variable{operand}}
-\pfxrow[11]{RI}{\constant{opcod ,}}
-\pfxrow[9]{..}{ELSEIF test,}
-\pfxrow[11]{RI}{\constant{opcod ,}}
-\pfxrow[9]{..}{ELSE ,}
-\pfxrow[11]{RI}{\constant{opcod ,}}
+\pfxrow[9]{}{IF \variable{operand}}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ELSEIF test,}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ELSE ,}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDIF ,}
 \end{pfxexample}
 \item[{\pfxcommand{IF option}}] \begin{itemize}
@@ -238,33 +240,33 @@ The prefix commands for the structured programming macros of the High Level Asse
 \item[{\pfxcommand{ORELS}}] Insert ORELSE
 
 \begin{pfxexample}
-\pfxrow[9]{..}{ORELSE ,}
-\pfxrow[11]{RI}{opcod ,}
+\pfxrow[9]{}{ORELSE ,}
+\pfxrow[11]{RIC}{opcod ,}
 \end{pfxexample}
 \item[{\pfxcommand{OTHER or OTHRW}}] Insert OTHRWISE
 
 \begin{pfxexample}
-\pfxrow[11]{..}{OTHRWISE ,}
-\pfxrow[13]{RI}{opcod ,}
+\pfxrow[11]{}{OTHRWISE ,}
+\pfxrow[13]{RIC}{opcod ,}
 \end{pfxexample}
 \item[{\pfxcommand{SEArc or STRTS}}] Insert search block
 
 \begin{pfxexample}
-\pfxrow[9]{..}{STRTSRCH do\_options}
-\pfxrow[11]{RI}{\constant{opcod ,}}
-\pfxrow[9]{..}{EXITIF if\_options}
-\pfxrow[11]{RI}{\constant{opcod ,}}
-\pfxrow[9]{..}{ORELSE ,}
-\pfxrow[11]{..}{\constant{opcod ,}}
-\pfxrow[9]{RI}{ENDLOOP ,}
-\pfxrow[11]{..}{\constant{opcod ,}}
+\pfxrow[9]{}{STRTSRCH do\_options}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{EXITIF if\_options}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ORELSE ,}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDLOOP ,}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
 \pfxrow[9]{}{ENDSRCH ,}
 \end{pfxexample}
 \item[{\pfxcommand{SELect}}] Insert SELECT block:
 
 \begin{pfxexample}
 \pfxrow[9]{}{SELECT}
-\pfxrow[11]{..}{\constant{WHEN IF\_test}}
+\pfxrow[11]{}{\constant{WHEN IF\_test}}
 \pfxrow[13]{RIC}{\constant{opcod ,}}
 \pfxrow[11]{}{OTHRWISE ,}
 \pfxrow[13]{RIC}{\constant{opcod ,}}
@@ -276,7 +278,7 @@ The prefix commands for the structured programming macros of the High Level Asse
 \item[{\pfxcommand{WHEN}}] Insert WHEN clause:
 
 \begin{pfxexample}
-\pfxrow[11]{..}{WHEN IF\_test}
+\pfxrow[11]{}{WHEN IF\_test}
 \pfxrow[13]{RIC}{\constant{opcod ,}}
 \end{pfxexample}
 \end{description}
@@ -299,18 +301,18 @@ The prefix commands for REXX are:
 \item[{\pfxcommand{DO}}] Insert DO block:
 
 \begin{pfxexample}
-\pfxrow{..}{do}
-\pfxrow{RI}{}
+\pfxrow{}{do}
+\pfxrow{RIC}{}
 \pfxrow[3]{}{\constant{end}}
 \end{pfxexample}
 \item[{\pfxcommand{IF}}] Insert IF:
 
 \begin{pfxexample}
-\pfxrow{..}{if \&placeholder then do}
-\pfxrow{RI}{}
+\pfxrow{}{if \&placeholder then do}
+\pfxrow{RIC}{}
 \pfxrow[3]{}{\constant{end}}
 \pfxrow{}{else do}
-\pfxrow{RI}{}
+\pfxrow{RIC}{}
 \pfxrow[3]{}{\constant{end}}
 \end{pfxexample}
 \item[{\pfxcommand{RI}}] Repeat insert
@@ -319,7 +321,7 @@ The prefix commands for REXX are:
 
 \begin{pfxexample}
 \pfxrow{}{select}
-\pfxrow[1]{..}{\constant{when \&placeholder then do}}
+\pfxrow[1]{}{\constant{when \&placeholder then do}}
 \pfxrow{RIC}{}
 \pfxrow[3]{}{\constant{end}}
 \pfxrow[1]{}{\constant{otherwise do}}
@@ -330,7 +332,7 @@ The prefix commands for REXX are:
 \item[{\pfxcommand{WHEN}}] Insert WHEN clause:
 
 \begin{pfxexample}
-\pfxrow[1]{..}{when \&placeholder then do}
+\pfxrow[1]{}{when \&placeholder then do}
 \pfxrow{RIC}{}
 \pfxrow[3]{}{\constant{end}}
 \end{pfxexample}

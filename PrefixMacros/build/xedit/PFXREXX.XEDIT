@@ -133,8 +133,12 @@ select
       nop
    end
 
+if \datatype(Count,'W') then call Error_msg 'Invalid repetition count'
+if Count < 1 | Count > 99 then call Error_msg 'Expected count from 1 to 99'
+
 /* FLSCREEN and MASK not available in THE */
 'COMMAND          EXTRACT /FLSCREEN /FNAME /MASK /ZONE'
+Mask_user = MASK.1                /* the user's own insertion mask      */
 'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
 
 /* calculate indentation based on the presence of a label or statement */
@@ -146,7 +150,7 @@ select
       /* No indent after empty line */
       Op_col = 1
       end
-   when Colon  then do
+   when Colon > 0 then do
       /* Potential keyword is first word after label */
       /* Don't assume separating blank */
       parse var Op_old . ':' Op_new
@@ -186,6 +190,7 @@ select
       if abbrev(WHEN,     Command_name,3) then
          Indent = Indent - Indent_WHEN
    end
+Indent = max(0,Indent)
 Op_col = Indent + 1
 Pad    = left('',Indent)
 
@@ -238,9 +243,8 @@ select
                   end
                end
             COMMAND ':'Iline INPUT pad || DO_string
-            COMMAND          SET   PENDING ON '..'
-            COMMAND          ADD
-            COMMAND '+1'     SET   PENDING ON 'RI'
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd2'end'
             end
          when Command_name = 'IF' then do
@@ -250,13 +254,12 @@ select
             call Get_mask
             Ccol   = Ccol + 3            /* at &placeholder in 'if &placeholder then do' */
             COMMAND ':'Iline INPUT pad || 'if &placeholder then do'
-            COMMAND          SET   PENDING ON '..'
-            COMMAND          ADD
-            COMMAND '+1'     SET   PENDING ON 'RI'
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd2'end'
             COMMAND          INPUT pad'else do'
-            COMMAND          ADD
-            COMMAND '+1'     SET   PENDING ON 'RI'
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd2'end'
             end
          when Command_name = 'LC' then do
@@ -286,8 +289,8 @@ select
             Eline  = Cline + 2
             Pd2    = Pad || left('',Indent_WHEN)
             call Get_mask
-            COMMAND ':'Iline INPUT pad || 'otherwise then do'
-            COMMAND          ADD
+            COMMAND ':'Iline INPUT pad || 'otherwise do'
+            call Add_line
             COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd2'end'
             end
@@ -304,7 +307,7 @@ select
             Op_col = Ccol
             call Get_mask
             COMMAND ':'Iline SET PENDING ON '..'
-            COMMAND          ADD
+            call Add_line
             if Pass = 1 then do
                COMMAND ':'Cline SET PENDING ON 'RIC'min(Count,99)
                end
@@ -323,13 +326,12 @@ select
             call Get_mask
             COMMAND ':'Iline INPUT pad || 'select'
             COMMAND          INPUT pd2 || 'when &placeholder then do'
-            COMMAND          SET   PENDING ON '..'
-            COMMAND          ADD
+            call Add_line
             COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd3'end'
             COMMAND          INPUT pd2'otherwise do'
-            COMMAND          ADD
-            COMMAND '+1'     SET   PENDING ON 'RI'
+            call Add_line
+            COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd3'end'
             COMMAND          INPUT Pd2'end'
             end
@@ -347,7 +349,7 @@ select
                   end
                when datatype(Op1,'W') then do
                   /* Upper case up to specified column */
-                  call set_case LOWERCAS, Op1
+                  call set_case UPPERCAS, Op1
                   leave
                   end
                otherwise
@@ -362,7 +364,7 @@ select
             Pd2    = Pad || left('',Indent_WHEN)
             call Get_mask
             COMMAND ':'Iline INPUT pad || 'when &placeholder then do'
-            COMMAND          ADD
+            call Add_line
             COMMAND '+1'     SET   PENDING ON 'RIC'
             COMMAND          INPUT Pd2'end'
             end
@@ -409,12 +411,20 @@ exit
 /* Subroutines */
 
 Get_mask:
+   /* Build the template mask in MASK.1 from the user's mask; Add_line
+      applies it only to the body lines it adds                         */
    if Op_col = 0 then
       return
-   MASK.1 = overlay('/*',MASK.1,40)
+   MASK.1 = overlay('/*',Mask_user,40)
    MASK.1 = overlay('*/',MASK.1,70)
-   MASK.1 = overlay('&placeholder',MASK.1,Op_col)
+   MASK.1 = overlay('.',MASK.1,Op_col)
+   return
+
+Add_line:
+   /* ADD one line under the template mask, then restore the user's mask */
    COMMAND SET MASK IMMED MASK.1
+   COMMAND ADD
+   COMMAND SET MASK IMMED Mask_user
    return
 
 Set_case:
