@@ -1,0 +1,307 @@
+% Build: pandoc -f odt -t json Prefix.Macros.odt -o Prefix.Macros.json
+%       rexx odt-to-latex-converter.rex Prefix.Macros.json
+%       rexx assemble.rex
+%       xelatex Prefix.Macros.tex
+%
+% Converted from Prefix.Macros.odt by walking pandoc's own JSON AST
+% (odt-to-latex-converter.rex) -- pandoc resolves the ODF's structure
+% correctly, using a real parser; this script only decides this
+% document's own grouping quirks and emits semantic markup (pfxmacros.sty)
+% in place of raw \textbf/\textit/tabular.
+\documentclass[11pt]{article}
+\usepackage[letterpaper,margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{pfxmacros}
+\usepackage{fontspec}
+\newfontfamily\hebrewfont{David CLM}[Script=Hebrew]
+\TeXXeTstate=1
+% Bold comes from \pfxcommand itself (pfxmacros.sty), not from here.
+\setlist[description]{leftmargin=\pfxprefixwidth, labelsep=0.3cm, style=nextline, font=\normalfont}
+
+\title{Prefix Macros for THE and XEDIT}
+\author{Seymour J. Metz (H: Shmuel {\hebrewfont\beginR שמואל בן לייביש ולאה\endR})}
+\date{}
+
+\begin{document}
+\maketitle
+
+To use these macros, you must issue appropriate \constant{SET PREFIX SYNONYM} commands, normally from a profile specific to the file type. With the exception of \constant{..}, the command may be preceded or followed by a repetition count prior to the first option. In general, these commands insert templates for control structures with pending commands to simplify subsequent input. They set the cursor position and indentation appropriately for the line preceding the insert and for the type of insert. The following documentation uses case to show minimum truncation, e.g., ASMLe may be entered as either ASMLE or as ASML. \constant{Bold} text indicates a constant string and \variable{italic} text indicates a variable.
+
+Note that each XEDIT file does SET PENDING commands for the macros \constant{..}, \constant{RI} and \constant{RIC}, but that you are also allowed to key them in yourself. Under CMS you can use GLOBALV to override some indentation defaults; under THE the defaults apply. The documentation for each prefix command shows any command set pending prior to the inserted text.
+
+On a 3270 you fill in the whole template and then press Enter once. Each body line of a template is set pending \constant{RIC}: a body line you complete stays, and a new body line is inserted below it; a body line left as inserted is deleted. Keyword lines carry no pending command, so the whole control structure stays.
+
+\constant{RI} and \constant{RIC} are slightly more complex. \constant{RIC} with no user input deletes itself; otherwise the command does a \constant{SET PENDING ..} and inserts a blank line. A repeated \constant{RI} or \constant{RIC}, e.g., \constant{3RI}, behaves differently for the first line and subsequent lines. For the first line of cc\constant{RI} or cc\constant{RIC}, it does a \constant{SET PENDING RIC}cc on the inserted blank line; for subsequent lines it does a \constant{SET PENDING ..}.
+
+The LC and \constant{UC} commands translate to lower and upper case. By default they translate everything within the current zone, but an operand of \constant{C} requests translation only up to the cursor column and a numeric operand requests translation only up to the specified column.
+
+Prefix macros for GML are slightly different; you define the single synonym : the first non-numeric operand is the command, e.g., \constant{:H1} inserts a level one heading.
+
+\section*{Prefix macros for GML}
+
+\begin{description}
+\item[{\pfxcommand{BIB}}] Insert bibliography entry: :BIB ID= name, initials :CIT title :ECIT.
+\item[{\pfxcommand{BIBId}}] :BIBID REFID=
+\item[{\pfxcommand{BIBRef}}] :BIBREF REFID=. PP='.-.'
+\item[{\pfxcommand{BL}}] :BL :EBL
+\item[{\pfxcommand{BOX}}] Insert box :BOX :EBOX
+\item[{\pfxcommand{CITE}}] Insert title citation :CITE :ECITE
+\item[{\pfxcommand{DD}}] Insert definition description
+\item[{\pfxcommand{DDH}}] Insert definition description header
+\item[{\pfxcommand{DIST}}] 
+\item[{\pfxcommand{DISTRib}}] 
+\item[{\pfxcommand{DL}}] Insert definition list
+\item[{\pfxcommand{DT}}] Insert definition term
+\item[{\pfxcommand{DTH}}] Insert definition term header
+\item[{\pfxcommand{EN}}] 
+\item[{\pfxcommand{FIG}}] Insert figure
+\item[{\pfxcommand{FIGId}}] 
+\item[{\pfxcommand{FIGRef}}] Insert figure reference
+\item[{\pfxcommand{FN}}] Insert footnote
+\item[{\pfxcommand{FNREf}}] Insert footnote reference
+\item[{\pfxcommand{GD}}] Insert glossary definition
+\item[{\pfxcommand{GDOC}}] Insert general document
+\item[{\pfxcommand{GL}}] Insert glossary list
+\item[{\pfxcommand{GT}}] Insert glossary term
+\item[{\pfxcommand{H}}] Insert heading level n, specified as :Hn, n=1-6
+\item[{\pfxcommand{HDRef}}] Insert heading reference
+\item[{\pfxcommand{HP}}] highlighted phrase n, specified as :Hpn, n=0-3
+\item[{\pfxcommand{I}}] Insert index entry level n, specified as :In, n=1-3
+\item[{\pfxcommand{IH}}] Insert index header level n, specified as :In, n=1-3
+\item[{\pfxcommand{LETter}}] 
+\item[{\pfxcommand{LI}}] Insert list item
+\item[{\pfxcommand{LIH}}] 
+\item[{\pfxcommand{LQ}}] Insert long quote
+\item[{\pfxcommand{MEMo}}] 
+\item[{\pfxcommand{NOTE}}] Insert note
+\item[{\pfxcommand{OL}}] Insert ordered list
+\item[{\pfxcommand{P}}] Insert paragraph
+\item[{\pfxcommand{PSC}}] Insert process specific control
+\item[{\pfxcommand{Q}}] Insert quote
+\item[{\pfxcommand{SL}}] Insert simple list
+\item[{\pfxcommand{TAB}}] 
+\item[{\pfxcommand{TABId}}] 
+\item[{\pfxcommand{TABRef}}] 
+\item[{\pfxcommand{UL}}] Insert unordered list
+\item[{\pfxcommand{XMP}}] Insert example
+\end{description}
+
+\section*{Prefix macros for High Level Assembler}
+
+Under CMS, \constant{GLOBALV PFXHLASM} variables override default indentation; under THE the defaults apply.
+
+\begin{description}
+\item[{\pfxcommand{\constant{Indent\_CASE}=2}}] 
+\item[{\pfxcommand{\constant{Indent\_CASENTRY}=2}}] 
+\item[{\pfxcommand{\constant{Indent\_DO}=2}}] 
+\item[{\pfxcommand{\constant{Indent\_IF}=2}}] 
+\item[{\pfxcommand{\constant{Indent\_SEARCH}=2}}] 
+\item[{\pfxcommand{\constant{Indent\_SELECT}=2}}] 
+\item[{\pfxcommand{\constant{Indent\_WHEN}=2}}] 
+\end{description}
+The prefix commands for the structured programming macros of the High Level Assembler Toolkit are:
+
+\begin{description}
+\item[{\pfxcommand{..}}] Auto-delete line if no user input
+\item[{\pfxcommand{ASMLea}}] Insert ASMLEAVE
+
+\begin{pfxexample}
+\pfxrow[11]{}{ASMLEAVE label}
+\pfxrow{RIC}{}
+\end{pfxexample}
+\item[{\pfxcommand{CASE}}] Insert CASE
+
+\begin{pfxexample}
+\pfxrow[11]{}{CASE ?}
+\pfxrow[13]{RIC}{\constant{Opcod ,}}
+\end{pfxexample}
+\item[{\pfxcommand{CASEE or CASEN}}] Insert CASENTRY block
+
+\begin{pfxexample}
+\pfxrow[9]{}{CASENTRY R?,POWER=?,VECTOR=B}
+\pfxrow[11]{}{\constant{CASE}}
+\pfxrow[13]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDCASE ,}
+\end{pfxexample}
+\item[{\pfxcommand{DO}}] Insert DO ONCE block:
+
+\begin{pfxexample}
+\pfxrow[9]{}{DO ONCE}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
+\end{pfxexample}
+\item[{\pfxcommand{\constant{1DO}\variable{nn}}}] Insert DO FROM Rnn block:
+
+\begin{pfxexample}
+\pfxrow[9]{}{DO FROM=(R\variable{nn})}
+\pfxrow[11]{RIC}{\constant{opcod}}
+\pfxrow[9]{}{ENDDO ,}
+\end{pfxexample}
+\item[{\pfxcommand{DO By}}] Insert DO FROM BY block:
+
+\begin{pfxexample}
+\pfxrow[9]{}{DO FROM=(R?),BY=(R?)}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
+\end{pfxexample}
+\item[{\pfxcommand{\constant{DO B}n}}] Insert DO FROM BY Rn block:
+
+\begin{pfxexample}
+\pfxrow[9]{}{DO FROM=(R?),BY=(R\variable{n})}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
+\end{pfxexample}
+\item[{\pfxcommand{DO FO or DO In}}] Insert DO forever block:
+
+\begin{pfxexample}
+\pfxrow[9]{}{DO INF}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
+\end{pfxexample}
+\item[{\pfxcommand{DO FR}}] Insert DO FROM block:
+
+\begin{pfxexample}
+\pfxrow[9]{}{DO FROM=(R?)}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
+\end{pfxexample}
+\item[{\pfxcommand{DO Un}}] Insert DO UNTIL block:
+
+\begin{pfxexample}
+\pfxrow[9]{}{DO UNTIL=if\_option}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
+\end{pfxexample}
+\item[{\pfxcommand{DO Wh}}] Insert DO WHILE block
+
+\begin{pfxexample}
+\pfxrow[9]{}{DO WHILE=if\_option}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDDO ,}
+\end{pfxexample}
+\item[{\pfxcommand{DOEXi}}] Insert DOEXIT
+
+\begin{pfxexample}
+\pfxrow[11]{}{DOEXIT test}
+\pfxrow{RIC}{}
+\end{pfxexample}
+\item[{\pfxcommand{ELSE}}] Insert ELSE
+
+\begin{pfxexample}
+\pfxrow[9]{}{ELSE ,}
+\pfxrow[11]{RIC}{opcod ,}
+\end{pfxexample}
+\item[{\pfxcommand{ELSEI}}] Insert ELSEIF
+
+\begin{pfxexample}
+\pfxrow[9]{}{ELSEIF test}
+\pfxrow[11]{RIC}{opcod}
+\end{pfxexample}
+\item[{\pfxcommand{EXITI}}] Insert EXITIF
+
+\begin{pfxexample}
+\pfxrow[9]{}{EXITIF if\_options}
+\pfxrow[11]{RIC}{opcod ,}
+\pfxrow[9]{}{ORELSE ,}
+\pfxrow[11]{RIC}{opcod ,}
+\end{pfxexample}
+\item[{\pfxcommand{IF}}] Insert IF:
+
+\begin{pfxexample}
+\pfxrow[9]{}{IF \variable{operand}}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ELSEIF test,}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ELSE ,}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDIF ,}
+\end{pfxexample}
+\item[{\pfxcommand{IF option}}] \begin{itemize}
+\item Omitted: Insert period for tabbing
+\item \constant{E}, \constant{EQ}, \constant{GT}, \constant{H}, \constant{L}, \constant{LE}, \constant{LT}, \constant{M}, \constant{N}, \constant{NE}, \constant{NH}, \constant{NL}, \constant{NM}, \constant{NO}, \constant{NP}, \constant{NZ}, \constant{O}, or \constant{Z}: Condition code operand is \constant{(}\variable{option}\constant{)}
+\item Numeric from 0 to 15: Condition code operand is \constant{(}\variable{option}\constant{)}
+\item CC: Condition code operand is \constant{CC=.}
+\end{itemize}
+\item[{\pfxcommand{\constant{LC} [\constant{C}\textbar{}column\#]}}] Lower case
+\item[{\pfxcommand{\variable{nn}RI}}] Repeat insert; set pending \constant{.. }and insert (nn < 100)
+
+\begin{pfxexample}
+\pfxrow{..}{Blank line 1}
+\pfxrow{..}{...}
+\pfxrow{\variable{nn}RIC}{Blank line \variable{nn}}
+\end{pfxexample}
+\item[{\pfxcommand{\variable{nn}RIC}}] Repeat insert conditional; auto-delete if RIC on empty line, otherwise set pending \constant{.. }and insert
+
+\begin{pfxexample}
+\pfxrow{..}{Blank line 1}
+\pfxrow{..}{...}
+\pfxrow{\variable{nn}RIC}{Blank line \variable{nn}}
+\end{pfxexample}
+\item[{\pfxcommand{ORELS}}] Insert ORELSE
+
+\begin{pfxexample}
+\pfxrow[9]{}{ORELSE ,}
+\pfxrow[11]{RIC}{opcod ,}
+\end{pfxexample}
+\item[{\pfxcommand{OTHER or OTHRW}}] Insert OTHRWISE
+
+\begin{pfxexample}
+\pfxrow[11]{}{OTHRWISE ,}
+\pfxrow[13]{RIC}{opcod ,}
+\end{pfxexample}
+\item[{\pfxcommand{SEArc or STRTS}}] Insert search block
+
+\begin{pfxexample}
+\pfxrow[9]{}{STRTSRCH do\_options}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{EXITIF if\_options}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ORELSE ,}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDLOOP ,}
+\pfxrow[11]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDSRCH ,}
+\end{pfxexample}
+\item[{\pfxcommand{SELect}}] Insert SELECT block:
+
+\begin{pfxexample}
+\pfxrow[9]{}{SELECT}
+\pfxrow[11]{}{\constant{WHEN IF\_test}}
+\pfxrow[13]{RIC}{\constant{opcod ,}}
+\pfxrow[11]{}{OTHRWISE ,}
+\pfxrow[13]{RIC}{\constant{opcod ,}}
+\pfxrow[9]{}{ENDSEL ,}
+\end{pfxexample}
+\item[{\pfxcommand{STAr}}] Put continuation character in column 72
+\item[{\pfxcommand{UC [C\textbar{}column\#]}}] Upper case
+\item[{\pfxcommand{UNSTa}}] Remove continuation character from column 72
+\item[{\pfxcommand{WHEN}}] Insert WHEN clause:
+
+\begin{pfxexample}
+\pfxrow[11]{}{WHEN IF\_test}
+\pfxrow[13]{RIC}{\constant{opcod ,}}
+\end{pfxexample}
+\end{description}
+
+\section*{Prefix macros for REXX}
+
+Under CMS, \constant{GLOBALV PFXREXX} variables override default indentation; under THE the defaults apply.
+
+\begin{description}
+\item[{\pfxcommand{\constant{Indent\_DO}=3}}] 
+\item[{\pfxcommand{\constant{Indent\_IF}=3}}] 
+\item[{\pfxcommand{Indent\_label = 3}}] 
+\item[{\pfxcommand{\constant{Indent\_SELECT}=1}}] 
+\item[{\pfxcommand{\constant{Indent\_WHEN}=2}}] 
+\end{description}
+The prefix commands for REXX are:
+
+\begin{description}
+\item[{\pfxcommand{..}}] Auto-deleted if no user input
+% REXX templates: generated by pfx\gen\pfxdoc.rex from pfx\lang\rexx.pfx
+\input{../pfx/out/doc/pfx-rexx}
+\item[{\pfxcommand{RI}}] Repeat insert
+\item[{\pfxcommand{RIC}}] Repeat insert conditional
+\end{description}
+
+\end{document}

@@ -1,0 +1,75 @@
+% pfxmacros.sty
+%
+% Semantic markup for the prefix-macros documentation (Prefix.Macros.tex,
+% pfx.slides.tex). The source document states its own two-category rule
+% directly: "Bold text indicates a constant string and italic text
+% indicates a variable." That is a semantic distinction, not a
+% typographic one, so it is named here rather than hand-typed as
+% \textbf/\textit at each of the ~180 places it occurs -- changing how
+% a constant or a variable is presented (or adding a third category
+% later) means editing one definition, not searching the document.
+%
+% \pfxcommand and \pfxexample carry the same intent for the document's
+% other two repeated units: a prefix command's own name, and the
+% "prefix area / text area" example table that follows most of them
+% (one definition replaces the 25 hand-typed identical tabular specs).
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{pfxmacros}[2026/09/22 semantic markup for prefix-macros docs]
+
+\RequirePackage{array}
+\RequirePackage{fontspec}
+
+% ---- Text-level semantic roles ----
+
+% A literal constant the user types verbatim (a keyword, a fixed
+% string). Presented in bold.
+\newcommand{\constant}[1]{\textbf{#1}}
+
+% A placeholder the user supplies their own value for (an operand, a
+% count). Presented in italic.
+\newcommand{\variable}[1]{\textit{#1}}
+
+% A prefix command's own name, as a \item[] label in the command list.
+% Presented in bold, matching \constant -- a command name is itself a
+% constant the user types in the prefix area -- but named separately
+% since the two roles could diverge (e.g. a different weight for
+% labels specifically) without every call site needing to change.
+\newcommand{\pfxcommand}[1]{\textbf{#1}}
+
+% ---- The prefix-area/text-area example table ----
+%
+% Every worked example in this document is the same shape: a narrow
+% left column holding the prefix command(s) set pending on each line
+% (.., RI, RIC, or blank), and a wide right column holding the
+% generated text-area content for that line. One environment replaces
+% the 25 identical \begin{tabular}{@{}p{2.2cm}p{9.5cm}@{}} blocks this
+% document used to hand-type; the column widths -- and the
+% description list's own leftmargin, set to match -- are defined once
+% here, so a command's name and a table row's prefix command line up
+% at the same indent, and both description text and table text-area
+% content start at the same following column.
+\newlength{\pfxprefixwidth}
+\setlength{\pfxprefixwidth}{2.2cm}
+\newlength{\pfxtextwidth}
+\setlength{\pfxtextwidth}{9.5cm}
+
+% Both columns are set in a monospaced font, as on the editor's screen,
+% so that indentation is measured in character columns. TeX Gyre
+% Cursor has the bold and italic that \constant and \variable need.
+\newfontfamily\pfxmonofont{TeX Gyre Cursor}
+\newlength{\pfxcolumn}
+
+\newenvironment{pfxexample}{%
+  \begin{tabular}{|>{\pfxmonofont}p{\pfxprefixwidth}|>{\pfxmonofont}p{\pfxtextwidth}|}
+  \hline
+}{%
+  \end{tabular}
+}
+% One row: prefix command (may be empty) and its text-area content.
+% The optional argument is the indentation in character columns: the
+% number of blanks the macro puts before the text, so 9 for an HLASM
+% statement starting in column 10.
+\NewDocumentCommand{\pfxrow}{O{0}mm}{%
+  #2 & \settowidth{\pfxcolumn}{0}\hspace*{#1\pfxcolumn}#3 \\ \hline}
+
+\endinput

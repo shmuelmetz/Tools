@@ -1,0 +1,80 @@
+% Build: xelatex pfx.slides.tex
+%
+% Converted from pfx.slides.odt (LibreOffice Writer, not Impress --
+% five pages separated by manual page breaks standing in for slides)
+% to a real beamer deck. xelatex, for the Hebrew in the author line.
+\documentclass[11pt]{beamer}
+\setbeamertemplate{navigation symbols}{}
+\usepackage{pfxmacros}
+\usepackage{fontspec}
+\newfontfamily\hebrewfont{David CLM}[Script=Hebrew]
+\TeXXeTstate=1
+
+\title{Prefix Macros for THE and XEDIT}
+\author{Seymour J. Metz (H: Shmuel \texorpdfstring{{\hebrewfont\beginR שמואל בן לייביש ולאה\endR}}{שמואל בן לייביש ולאה})}
+\institute{\href{mailto:smetz3@gmu.edu}{smetz3@gmu.edu} \\ \url{http://mason.gmu.edu/~smetz3}}
+\date{}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Agenda}
+\begin{itemize}
+\item Background
+\item What it does
+\item Demo of revised version
+\item How it works
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Background}
+\begin{itemize}
+\item Large document dissemination system
+\item Front end ran under CMS in VM/SP HPO
+\item Written in
+  \begin{itemize}
+  \item Assembler H with PROC macros
+  \item PL/I
+  \item Several scripting languages
+  \end{itemize}
+\item Documentation in DCF GML SS
+\item Home grown IDE
+\item No syntax oriented editor
+\item The prefix macros were an extension to the IDE
+\end{itemize}
+\end{frame}
+
+\begin{frame}{What it does}
+\begin{itemize}
+\item Inserts templates for control structures, with empty lines for additional input
+\item Automatically indents
+\item Sets cursor appropriately for indentation structure
+\item Includes some utility commands, e.g., UC
+\item Commands support repetition counts and other parameters, although seriously limited by the size of the prefix field
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Demo of revised version}
+\end{frame}
+
+\begin{frame}{How it works}
+\begin{itemize}
+\item Requires a \constant{SET PREFIX SYNONYM} for each command
+  \begin{itemize}
+  \item Typically done in profile
+  \end{itemize}
+\item Makes heavy use of \constant{SET PENDING}
+\item Defines and make heavy use of
+  \begin{itemize}
+  \item \constant{..}
+  \item \constant{RI}
+  \item \constant{RIC}
+  \end{itemize}
+\item Common housekeeping to, e.g., extract an optional count parameter
+\end{itemize}
+\end{frame}
+
+\end{document}
