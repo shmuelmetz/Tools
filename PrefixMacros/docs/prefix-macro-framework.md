@@ -296,6 +296,31 @@ checklist for you to run on CMS, with the same expected screens.
 No engine change is needed unless the language needs a new kind of
 behaviour, such as GML's operand dispatch.
 
+## Candidate languages
+
+His list, 16 Nov 2026: Enterprise PL/I, Python, Ruby, NetRexx, ooRexx. The
+HLASM side means the HLASM Toolkit structured macros; PROC (a set of
+Assembler H macros) is of historical interest only and is not a
+candidate. GML: IBM's GML Starter Set and Waterloo GML differ, so a GML
+definition must say which it targets.
+
+What each candidate asks of the definition format and the engine:
+
+- **NetRexx:** close to REXX (`do`/`end`, `select`/`when`/`otherwise`), plus
+  `catch` and `finally` clauses and `class`/`method` structure.
+- **ooRexx:** the REXX definition plus ooRexx's own structure: `loop`
+  and `do ... over`, `select case`, and directives (`::class`,
+  `::method`, `::routine`), which start sections rather than blocks
+  with an `end`. Best written as an extension of the REXX definition
+  rather than a copy.
+- **Enterprise PL/I:** `do`/`end`, `if ... then do`, `select`/`when`/
+  `otherwise`, `begin`/`end`; source margins (by default columns 2-72)
+  matter for the mask and the indentation.
+- **Ruby:** keyword blocks closed by `end`; `#` comments.
+- **Python:** blocks have no closing keyword; indentation is the
+  structure. The definition needs templates with no closing row, and the
+  engine must not assume one.
+
 ## Migration
 
 1. Write `rexx.pfx` and `hlasm.pfx` from the current macros, with
