@@ -25,6 +25,8 @@
 \begin{document}
 \maketitle
 
+The author originally handcrafted the code for XEDIT in VM/SP HPO V6.
+
 To use these macros, you must issue appropriate \constant{SET PREFIX SYNONYM} commands, normally from a profile specific to the file type. With the exception of \constant{..}, the command may be preceded or followed by a repetition count prior to the first option. In general, these commands insert templates for control structures with pending commands to simplify subsequent input. They set the cursor position and indentation appropriately for the line preceding the insert and for the type of insert. The following documentation uses case to show minimum truncation, e.g., ASMLe may be entered as either ASMLE or as ASML. \constant{Bold} text indicates a constant string and \variable{italic} text indicates a variable.
 
 Note that each XEDIT file does SET PENDING commands for the macros \constant{..}, \constant{RI} and \constant{RIC}, but that you are also allowed to key them in yourself. Under CMS you can use GLOBALV to override some indentation defaults; under THE the defaults apply. The documentation for each prefix command shows any command set pending prior to the inserted text.
