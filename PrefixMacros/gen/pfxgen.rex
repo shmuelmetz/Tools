@@ -102,10 +102,17 @@ do lang over langs~space~makeArray(' ')
          status = 1
          leave
          end
-      if host[5] then name = macro~upper
+      /* a CMS file name has at most 8 characters: PFXOOREXX XEDIT is
+         written as PFXOOREX XEDIT */
+      if host[5] then name = macro~upper~left(min(macro~length, 8))
       else name = macro~lower
       target = pfxDir'out\'host[2]'\'name || host[4]
-      call writeLines target, out
+      problem = writeLines(target, out)
+      if problem \== '' then do
+         say 'pfxgen:' problem
+         status = 1
+         iterate
+         end
       say 'pfxgen: wrote' target '('out~items 'lines)'
       end
    end
@@ -168,6 +175,13 @@ exit status
             if def == .nil then return .nil
             if active then out~append(emitLevels(def))
             end
+         when directive == '#context' then do
+            if def == .nil then return .nil
+            if active then
+               do line over emitContext(def)
+                  out~append(line)
+                  end
+            end
          otherwise
             return .nil
          end
@@ -186,11 +200,14 @@ exit status
       call SysMkDir folder
       end
    s = .stream~new(path)
-   s~command('OPEN WRITE REPLACE')
+   r = s~command('OPEN WRITE REPLACE')
+   if r \== 'READY:' then
+      return 'cannot write' path':' r s~description
    do line over lines
       s~charOut(line'0D0A'x)
       end
    s~close
+   return ''
 
 /* emitCommands -- Classic Rexx "when" blocks, one per command in the
  * definition, for the macro's command select.  The macro supplies
@@ -218,7 +235,7 @@ exit status
       out~append(I"   Eline  = Cline +" rows~items)
       /* the first row, by operand variant */
       if cmd['VARS']~items = 0 then do
-         out~append(I'   First  =' rexxText(cmd['FIRST']))
+         out~append(I'   First  =' kwText(def, cmd['FIRST']))
          call emitCursor out, I'   ', cmd['CURSOR'], cmd, def
          end
       else do
@@ -240,7 +257,7 @@ exit status
                otherwise
                   out~append(I"      when abbrev('"operand~translate"',Op1,"var['MIN']") then do")
                end
-            out~append(I'         First  =' rexxText(var['FIRST']))
+            out~append(I'         First  =' kwText(def, var['FIRST']))
             call emitCursor out, I'         ', var['CURSOR'], cmd, def
             out~append(I'         end')
             end
@@ -259,9 +276,9 @@ exit status
             /* a body line with placeholder text, e.g. HLASM "opcod ,":
                input it, then set its pending command */
             if cols == '0' then
-               out~append(I'   COMMAND          INPUT Pad ||' rexxText(row['TEXT']))
+               out~append(I'   COMMAND          INPUT Pad ||' kwText(def, row['TEXT']))
             else
-               out~append(I"   COMMAND          INPUT Pad || left(''," cols") ||" rexxText(row['TEXT']))
+               out~append(I"   COMMAND          INPUT Pad || left(''," cols") ||" kwText(def, row['TEXT']))
             out~append(I"   COMMAND          SET   PENDING ON '"row['PEND']"'")
             end
          else if row['PEND'] \== .nil then do
@@ -275,27 +292,30 @@ exit status
                end
             end
          else if cols == '0' then
-            out~append(I'   COMMAND          INPUT Pad ||' rexxText(row['TEXT']))
+            out~append(I'   COMMAND          INPUT Pad ||' kwText(def, row['TEXT']))
          else
-            out~append(I"   COMMAND          INPUT Pad || left(''," cols") ||" rexxText(row['TEXT']))
+            out~append(I"   COMMAND          INPUT Pad || left(''," cols") ||" kwText(def, row['TEXT']))
          end
       out~append(I'   end')
       end
    return out
 
-/* emitCursor -- set Cline and Ccol: a number is an offset in the first
- * row; "body" is the first pending row at its indentation; a row's own
- * :cursor. puts it on that row; no cursor keeps the macro's default. */
+/* emitCursor -- set Cline and Ccol.  The first row's own cursor comes
+ * first: a number is an offset in the first row; "body" is the first
+ * pending row at its indentation; "none" leaves the cursor alone.
+ * Otherwise a later row's :cursor. puts it on that row; with neither,
+ * the macro's default stands. */
 ::routine emitCursor
    use strict arg out, ind, cursor, cmd, def
    rows = cmd['ROWS']
-   do r = 1 to rows~items
-      if rows[r]['CURSOR'] \== .nil then do
-         out~append(ind'Cline  = Cline +' r)
-         out~append(ind'Ccol   = Indent + 1 +' unitExpr(rows[r]['INDENT']) '+' rows[r]['CURSOR'])
-         return
+   if cursor == .nil then
+      do r = 1 to rows~items
+         if rows[r]['CURSOR'] \== .nil then do
+            out~append(ind'Cline  = Cline +' r)
+            out~append(ind'Ccol   = Indent + 1 +' unitExpr(rows[r]['INDENT']) '+' rows[r]['CURSOR'])
+            return
+            end
          end
-      end
    if cursor == .nil then return
    if cursor == 'none' then do
       /* leave the cursor where it is */
@@ -325,6 +345,146 @@ exit status
       expr = expr'Indent_'unit
       end
    return expr
+
+/* emitContext -- for #context: Classic Rexx assignments of the
+ * definition's look-back data.  Opens_<unit> lists the keywords that
+ * open a block indented by that unit (:opens. KEYWORD=unit ...);
+ * Line_comment is the line-comment start (:linecomment., '' if none);
+ * Continue_chars the characters that continue a line when they end it
+ * (:continue. trailing c ...); Anchor_kw and Anchor_cmds (name and
+ * minimum of each command) from §anchor KEYWORD command ... */
+::routine emitContext
+   use strict arg def
+   out = .array~new
+   opens = .directory~new
+   order = .array~new
+   spec = def['OPENS']
+   if spec == .nil then spec = ''
+   do pair over spec~space~makeArray(' ')
+      parse var pair keyword '=' unit
+      unit = unit~translate
+      if \opens~hasIndex(unit) then do
+         opens[unit] = ''
+         order~append(unit)
+         end
+      opens[unit] = (opens[unit] keyword~translate)~strip
+      end
+   do unit over .array~of('DO', 'IF', 'SELECT', 'WHEN')
+      if \opens~hasIndex(unit) then opens[unit] = ''
+      out~append(('Opens_'unit)~left(15)"= '"opens[unit]"'")
+      end
+   lc = def['LINECOMMENT']
+   if lc == .nil then lc = ''
+   out~append('Line_comment'~left(15)"= '"lc~strip"'")
+   chars = ''
+   mode = 'TRAILING'
+   cont = def['CONTINUE']
+   if cont \== .nil then do
+      parse var cont first rest
+      mode = first~translate
+      chars = rest~space(0)
+      end
+   out~append('Continue_mode'~left(15)"= '"mode"'")
+   out~append('Continue_chars'~left(15)"= '"chars"'")
+   kw = ''
+   pairs = ''
+   if def['ANCHOR'] \== .nil then do
+      parse value def['ANCHOR'] with kw names
+      do name over names~space~makeArray(' ')
+         do cmd over def['CMDS']
+            if cmd['NAME'] == name~translate then pairs = pairs cmd['NAME'] cmd['MIN']
+            end
+         end
+      end
+   out~append('Anchor_kw'~left(15)"= '"kw~translate"'")
+   out~append('Anchor_cmds'~left(15)"= '"pairs~strip"'")
+   /* the options: keyword case (ASIS, LOWER, UPPER) and margins, with
+      the group or prefix under which the user overrides them */
+   kcase = def['CASE']
+   if kcase == .nil then kcase = 'ASIS'
+   out~append('Keyword_case'~left(15)"= '"kcase~translate"'")
+   parse value def['MARGINS'] with mleft mright .
+   if \datatype(mleft, 'W') then mleft = 1
+   if \datatype(mright, 'W') then mright = 0
+   out~append('Margin_left'~left(15)'=' mleft)
+   out~append('Margin_right'~left(15)'=' mright)
+   out~append('Option_group'~left(15)"= '"def['MACRO']~upper"'")
+   /* the mask: §mask column:text ... op:text -- op is the placeholder
+      at the statement column (default '.'), the rest fixed columns */
+   items = ''
+   op = '.'
+   if def['MASK'] \== .nil then
+      do item over def['MASK']~space~makeArray(' ')
+         parse var item where ':' what
+         if where~translate == 'OP' then op = what
+         else items = items where what
+         end
+   out~append('Mask_items'~left(15)"= '"items~strip"'")
+   /* the indentation units (§unit), the defaults the user may
+      override; REXX's where the definition has none */
+   dflt = .directory~of(('DO', 3), ('IF', 3), ('LABEL', 3), ('SELECT', 1), ('WHEN', 2))
+   do u over .array~of('DO', 'IF', 'label', 'SELECT', 'WHEN')
+      v = def['UNIT'][u~translate]
+      if v == .nil then v = dflt[u~translate]
+      out~append(('Unit_'u)~left(15)'=' v)
+      end
+   /* labels: §label colon label (REXX: the label is the base) or
+      colon prefix (PL/I: a label prefixes a statement, whose keyword
+      governs the indent from the label's column) */
+   lmode = 'LABEL'
+   if def['LABEL'] \== .nil then lmode = def['LABEL']~word(2)~translate
+   out~append('Label_mode'~left(15)"= '"lmode"'")
+   /* §closes KEYWORD: after a line starting with it, align with the
+      line it closes */
+   ekw = ''
+   if def['CLOSES'] \== .nil then ekw = def['CLOSES']~word(1)~translate
+   out~append('End_kw'~left(15)"= '"ekw"'")
+   /* sanity checks: §before COMMAND KEYWORD -- the command may not
+      follow KEYWORD within its anchor; §within OPENER CLOSER command
+      ... -- the commands need an open OPENER ... CLOSER block */
+   bkw = ''
+   bcmds = ''
+   if def['BEFORE'] \== .nil then do
+      parse value def['BEFORE'] with bname bkw .
+      bcmds = namePairs(def, bname)
+      end
+   out~append('Before_cmds'~left(15)"= '"bcmds"'")
+   out~append('Before_kw'~left(15)"= '"bkw~translate"'")
+   rules = ''
+   if def['WITHINS'] \== .nil then
+      do w over def['WITHINS']
+         parse var w opener closer names
+         if rules \== '' then rules = rules';'
+         rules = rules || opener~translate closer~translate namePairs(def, names)
+         end
+   out~append('Within_rules'~left(15)"= '"rules"'")
+   out~append('Mask_op'~left(15)"= '"op"'")
+   return out
+
+/* namePairs -- 'NAME min ...' for the named commands, with their
+ * aliases, for matching the typed command with abbrev() */
+::routine namePairs
+   use strict arg def, names
+   pairs = ''
+   do name over names~space~makeArray(' ')
+      do cmd over def['CMDS']
+         if cmd['NAME'] \== name~translate then iterate
+         pairs = pairs cmd['NAME'] cmd['MIN']
+         do s over cmd['SYNONYMS']
+            pairs = pairs s[1] s[2]
+            end
+         end
+      end
+   return pairs~strip
+
+/* kwText -- template text as a Rexx expression; when the definition
+ * has §case, wrapped in Kw() so that the macro applies the user's
+ * keyword case at run time */
+::routine kwText
+   use strict arg def, text
+   expr = rexxText(text)
+   if def['CASE'] == .nil then return expr
+   return 'Kw('expr')'
 
 /* emitLevels -- for #levels: a Classic Rexx assignment of Level_cmds,
  * the name and minimum abbreviation of each command that takes a level

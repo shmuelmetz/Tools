@@ -105,6 +105,13 @@ tracked. A make target copies them to `web\source\` for publication.
 
 ## Language definition files
 
+**Changed 17 Nov 2026 (his):** the tag marker is now the section sign,
+`§tag value` (U+00A7, in UTF-8), not `:tag.`. The colon form collided
+with the languages themselves (GML `:ROW.`, ooRexx `::class`), and the
+reader needed special rules for which tags could follow on a line; `§`
+occurs in none of them, so every one starts a tag. The sketch below
+still shows the original colon form.
+
 The format is a CMS NAMES-style tagged file: `:tag.value` entries, one entry
 per `:cmd.`. It's chosen because the macros come from CMS and because
 it's trivial to parse in ooRexx and in OREXX. A sketch for one REXX

@@ -27,14 +27,16 @@ SOFFICE   ?= soffice
 # CREDITED: the THE macros that carry the acknowledgements in
 # pfx-credits.txt: all of them, since the GML source reuses the THE
 # compatibility fixes made for PFXREXX and PFXHLASM.
-LANGS     := rexx hlasm gml dcfgml
-MACROS    := pfxrexx pfxhlasm pfxgmlw pfxgmlss
+LANGS     := rexx hlasm gml dcfgml oorexx netrexx pli
+MACROS    := pfxrexx pfxhlasm pfxgmlw pfxgmlss pfxoorexx pfxnetrexx pfxpli
 CREDITED  := $(MACROS)
 upper      = $(shell echo $(1) | tr a-z A-Z)
+# the XEDIT name: upper case, at most 8 characters (a CMS file name)
+xname      = $(shell echo $(1) | tr a-z A-Z | cut -c1-8)
 
 OUT_THE   := $(foreach m,$(MACROS),out/the/$(m).the)
-OUT_XEDIT := $(foreach m,$(MACROS),out/xedit/$(call upper,$(m)).XEDIT)
-BUILD     := $(foreach m,$(MACROS),build/the/$(m).the build/xedit/$(call upper,$(m)).XEDIT)
+OUT_XEDIT := $(foreach m,$(MACROS),out/xedit/$(call xname,$(m)).XEDIT)
+BUILD     := $(foreach m,$(MACROS),build/the/$(m).the build/xedit/$(call xname,$(m)).XEDIT)
 
 DOC_DIR   := Documentation
 DOCS      := $(DOC_DIR)/Prefix.Macros.pdf $(DOC_DIR)/Prefix.Macros.odt \

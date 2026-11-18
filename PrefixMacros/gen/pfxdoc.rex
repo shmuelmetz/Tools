@@ -7,11 +7,14 @@
  * (out\doc\pfx-<lang>.tex), so that the documented templates come
  * from the same data the engine will use.
  *
- * Definition format: one tag per line, ":tag. value"; a line starting
- * with * is a comment.  :cmd. starts a command; :first. or :var. give
- * its first row (a :var. per operand variant, "-" for no operand, "*"
- * for any other); :row. gives each further row as pend=, indent=
- * (named units joined by +) and text= (the rest of the line).
+ * Definition format: a line starts with a tag, "§tag value" (the
+ * marker is the section sign, U+00A7, in UTF-8; it occurs in none of
+ * the languages, so a value may hold any text); a line starting with *
+ * is a comment.  §cmd starts a command, with §min and §desc on its
+ * line; §first or §var give its first row (a §var per operand variant,
+ * "-" for no operand, "*" for any other); §row gives each further row
+ * as pend=, indent= (named units joined by +) and text= (the rest of
+ * the line); §cursor may follow §first, §var or §row.
  *
  * Usage:
  *   rexx gen\pfxdoc.rex [lang ...]     default: every lang\*.pfx

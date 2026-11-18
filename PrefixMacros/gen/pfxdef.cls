@@ -14,9 +14,12 @@
    use strict arg path
    knownTags = 'LANG MACRO UNIT MASK COMMENT CONTINUE BLANK LABEL OPENS' ,
                'NESTED DEDENT CMD MIN DESC FIRST CURSOR VAR ROW LEVEL' ,
-               'BUILTIN SYNONYM DISPATCH INSERT SOURCE ALIAS'
-   /* the tags that can follow another tag on the same line */
-   inlineTags = 'MIN DESC FIRST CURSOR'
+               'BUILTIN SYNONYM DISPATCH INSERT SOURCE ALIAS LINECOMMENT ANCHOR CASE MARGINS' ,
+               'BEFORE WITHIN CLOSES'
+   /* the tag marker: the section sign, U+00A7, in UTF-8; it occurs in
+      none of the languages, so every one starts a tag and a value may
+      hold any text (GML ":ROW.", ooRexx "::class") */
+   marker = 'C2A7'x
    if stream(path, 'C', 'QUERY EXISTS') = '' then do
       say 'pfxdoc:' path 'not found'
       return .nil
@@ -31,29 +34,24 @@
    cmd = .nil
    do line over lines
       if line~strip = '' | line~left(1) = '*' then iterate
-      /* split into :tag. value pairs; a value may itself contain
-         " :" (GML text such as ":BIB ID=" or ":ROW."), so only
-         " :tag." for a tag that can follow another on its line starts
-         the next tag */
+      /* split into "tag value" pairs at each marker */
+      if line~strip~left(marker~length) \== marker then do
+         say 'pfxdef:' path': line does not start with a tag:' line
+         return .nil
+         end
       pairs = .array~new
-      rest = line
-      do while rest~strip \= ''
-         parse var rest ':' tag '.' rest
-         value = rest
-         rest = ''
-         from = 1
-         do forever
-            nxt = value~pos(' :', from)
-            if nxt = 0 then leave
-            parse value value~substr(nxt + 2) with cand '.' .
-            if inlineTags~wordPos(cand~translate) > 0 then do
-               rest = value~substr(nxt + 1)
-               value = value~left(nxt)
-               leave
-               end
-            from = nxt + 1
+      pieces = line~makeArray(marker)
+      do piece over pieces
+         if piece~strip == '' then iterate
+         parse var piece tag value
+         if knownTags~wordPos(tag~translate) = 0 then do
+            say 'pfxdef:' path': unknown tag' tag
+            return .nil
             end
-         pairs~append(.array~of(tag~translate, value~strip))
+         /* no stray carriage return, tab or line feed in a value (a
+            CR CR LF line end once put a CR into a macro name) */
+         value = value~translate('   ', '0D090A'x)~strip
+         pairs~append(.array~of(tag~translate, value))
          end
       first = pairs[1]
       select
@@ -76,6 +74,11 @@
                cmd['SYNONYMS']~append(.array~of(alias, amin))
                i = i + 1
                end
+            end
+         when first[1] == 'WITHIN' then do
+            /* sanity checks: any number of §within lines */
+            if \def~hasIndex('WITHINS') then def['WITHINS'] = .array~new
+            def['WITHINS']~append(first[2])
             end
          when first[1] == 'UNIT' then
             do item over first[2]~space~makeArray(' ')

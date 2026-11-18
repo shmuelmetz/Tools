@@ -2,6 +2,7 @@
 # Seymour J. Metz (H: Shmuel)
 # Location: tools repository, PrefixMacros\
 # Last updated: 2026-11-17
+# Compiled with AI assistance from Claude Opus 5.5 (Anthropic)
 #
 # WP:CS2 citations for the reference documents used for the language
 # definitions (lang\*.pfx) and the macro sources (src\*.src).
@@ -100,6 +101,74 @@
  | website     = os2.kr
  | note        = HTML conversion of IBM's OS/2 online REXX reference;
                  edition and date not shown
+ | publisher   = [[IBM]]
+ | access-date = 2026-11-17
+}}
+```
+
+### ooRexx (lang\oorexx.pfx, PFXOOREXX)
+
+```
+{{cite book
+ | title       = Open Object Rexx Reference
+ | edition     = 2026.04.18
+ | date        = 2026-04-17
+ | url         = https://sourceforge.net/projects/oorexx/files/oorexx-docs/5.2.0/
+ | type        = ooRexx Documentation 5.2.0
+ | note        = rexxref; last revised 2026-04-17 (r13151); installed
+                 with ooRexx 5.2 as doc\rexxref.pdf
+ | publisher   = [[Rexx Language Association]]
+ | access-date = 2026-11-17
+}}
+```
+
+### NetRexx (lang\netrexx.pfx, PFXNETREXX)
+
+```
+{{cite book
+ | title        = NetRexx Language Reference
+ | isbn         = 978-94-648-5133-5
+ | last1        = Cowlishaw
+ | first1       = Mike
+ | author-link1 = Mike Cowlishaw
+ | author2      = RexxLA
+ | edition      = Version 5.10-BETA
+ | date         = 2026-03-04
+ | series       = NetRexx Programming Series
+ | url          = https://www.netrexx.org/files/NetRexx-5.10-GA.zip
+ | note         = file documents/NetRexx 5.10 Language Reference.pdf in
+                  the 5.10-GA distribution
+ | publisher    = [[Rexx Language Association]]
+ | access-date  = 2026-11-17
+}}
+```
+
+### PL/I (lang\pli.pfx, PFXPLI)
+
+```
+{{cite book
+ | title       = Enterprise PL/I for z/OS Language Reference
+ | id          = SC31-5716
+ | edition     = Second
+ | date        = December 2025
+ | type        = Version 6 Release 2
+ | url         = https://www.ibm.com/docs/en/SSY2V3_6.2/pdf/pl_i_zos_6_2_language_reference.pdf
+ | note        = Program number 5655-PL6. IBM's documentation library
+                 page lists SC31-5716-00 (first edition); the suffix of
+                 the second edition was not seen
+ | publisher   = [[IBM]]
+ | access-date = 2026-11-17
+}}
+
+{{cite book
+ | title       = Enterprise PL/I for z/OS Programming Guide
+ | id          = GI13-5620
+ | edition     = Second
+ | date        = December 2025
+ | type        = Version 6 Release 2
+ | url         = https://www.ibm.com/docs/en/SSY2V3_6.2/pdf/pl_i_zos_6_2_programming_guide.pdf
+ | note        = MARGINS compile-time option. IBM's documentation
+                 library page lists GI13-5620-00 (first edition)
  | publisher   = [[IBM]]
  | access-date = 2026-11-17
 }}

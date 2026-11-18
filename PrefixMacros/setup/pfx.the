@@ -3,8 +3,11 @@
 
 /* trace ?i */
 HLAs  = ASM HLASM
-REXXs = CMD EXEC KEX REX REXX SPF THE THERC XED XEDIT
+REXXs = CMD EXEC KEX REXX SPF THE THERC XED XEDIT
 GMLs  = SCRIPT
+OOREXXs = CLS ORX REX
+NETREXXs = NRX
+PLIs  = PLI PL1
 Ftype = translate(Ftype.1())
 select
    when wordpos(Ftype,HLAs) > 0 then do
@@ -82,6 +85,128 @@ select
                 'whe'    /* WHEN                */ ,
                 'when'   /* WHEN                */
       Macro_name = PFXREXX
+      end
+   when wordpos(Ftype,OOREXXs) > 0 then do
+      /* ooRexx: the REXX commands plus LOOP and the directives */
+      Pfx_ops = '..'                               ,
+                'cline'  /* alias of .. for THE */ ,
+                'clc'    /* Column lower case   */ ,
+                'cl'     /* Column lower case   */ ,
+                'clo'    /* Column lower case   */ ,
+                'clow'   /* Column lower case   */ ,
+                'cuc'    /* Column upper case   */ ,
+                'cu'     /* Column upper case   */ ,
+                'cup'    /* Column upper case   */ ,
+                'cupp'   /* Column upper case   */ ,
+                'cuppe'  /* Column upper case   */ ,
+                'cla'    /* ::CLASS             */ ,
+                'clas'   /* ::CLASS             */ ,
+                'class'  /* ::CLASS             */ ,
+                'do'                               ,
+                'if'                               ,
+                'iter'   /* ITERATE             */ ,
+                'itera'  /* ITERATE             */ ,
+                'lea'    /* LEAVE               */ ,
+                'leav'   /* LEAVE               */ ,
+                'loc'                              ,
+                'loo'    /* LOOP                */ ,
+                'loop'   /* LOOP                */ ,
+                'met'    /* ::METHOD            */ ,
+                'meth'   /* ::METHOD            */ ,
+                'metho'  /* ::METHOD            */ ,
+                'method' /* ::METHOD            */ ,
+                'other'  /* OTHERWISE           */ ,
+                'res'    /* ::RESOURCE          */ ,
+                'reso'   /* ::RESOURCE          */ ,
+                'ri'                               ,
+                'ric'                              ,
+                'rou'    /* ::ROUTINE           */ ,
+                'rout'   /* ::ROUTINE           */ ,
+                'routi'  /* ::ROUTINE           */ ,
+                'sel'    /* SELECT              */ ,
+                'sele'   /* SELECT              */ ,
+                'selec'  /* SELECT              */ ,
+                'upc'                              ,
+                'whe'    /* WHEN                */ ,
+                'when'   /* WHEN                */
+      Macro_name = PFXOOREXX
+      end
+   when wordpos(Ftype,NETREXXs) > 0 then do
+      /* NetRexx: the REXX commands plus LOOP, CLASS, METHOD, PROPERTIES */
+      Pfx_ops = '..'                               ,
+                'cline'  /* alias of .. for THE */ ,
+                'clc'    /* Column lower case   */ ,
+                'cl'     /* Column lower case   */ ,
+                'clo'    /* Column lower case   */ ,
+                'clow'   /* Column lower case   */ ,
+                'cuc'    /* Column upper case   */ ,
+                'cu'     /* Column upper case   */ ,
+                'cup'    /* Column upper case   */ ,
+                'cupp'   /* Column upper case   */ ,
+                'cuppe'  /* Column upper case   */ ,
+                'cla'    /* CLASS               */ ,
+                'clas'   /* CLASS               */ ,
+                'class'  /* CLASS               */ ,
+                'do'                               ,
+                'if'                               ,
+                'iter'   /* ITERATE             */ ,
+                'itera'  /* ITERATE             */ ,
+                'lea'    /* LEAVE               */ ,
+                'leav'   /* LEAVE               */ ,
+                'loc'                              ,
+                'loo'    /* LOOP                */ ,
+                'loop'   /* LOOP                */ ,
+                'met'    /* METHOD              */ ,
+                'meth'   /* METHOD              */ ,
+                'metho'  /* METHOD              */ ,
+                'method' /* METHOD              */ ,
+                'other'  /* OTHERWISE           */ ,
+                'prop'   /* PROPERTIES          */ ,
+                'prope'  /* PROPERTIES          */ ,
+                'ri'                               ,
+                'ric'                              ,
+                'sel'    /* SELECT              */ ,
+                'sele'   /* SELECT              */ ,
+                'selec'  /* SELECT              */ ,
+                'upc'                              ,
+                'whe'    /* WHEN                */ ,
+                'when'   /* WHEN                */
+      Macro_name = PFXNETREXX
+      end
+   when wordpos(Ftype,PLIs) > 0 then do
+      /* PL/I: the REXX-style commands plus BEGIN and PROCEDURE */
+      Pfx_ops = '..'                               ,
+                'cline'  /* alias of .. for THE */ ,
+                'clc'    /* Column lower case   */ ,
+                'cl'     /* Column lower case   */ ,
+                'clo'    /* Column lower case   */ ,
+                'clow'   /* Column lower case   */ ,
+                'cuc'    /* Column upper case   */ ,
+                'cu'     /* Column upper case   */ ,
+                'cup'    /* Column upper case   */ ,
+                'cupp'   /* Column upper case   */ ,
+                'cuppe'  /* Column upper case   */ ,
+                'beg'    /* BEGIN               */ ,
+                'begi'   /* BEGIN               */ ,
+                'begin'  /* BEGIN               */ ,
+                'do'                               ,
+                'if'                               ,
+                'iter'   /* ITERATE             */ ,
+                'itera'  /* ITERATE             */ ,
+                'lea'    /* LEAVE               */ ,
+                'leav'   /* LEAVE               */ ,
+                'loc'                              ,
+                'other'  /* OTHERWISE           */ ,
+                'proc'   /* PROCEDURE           */ ,
+                'proce'  /* PROCEDURE           */ ,
+                'ri'                               ,
+                'ric'                              ,
+                'sel'    /* SELECT              */ ,
+                'sele'   /* SELECT              */ ,
+                'selec'  /* SELECT              */ ,
+                'upc'                              ,
+                'when'   /* WHEN                */
+      Macro_name = PFXPLI
       end
    when wordpos(Ftype,GMLs) > 0 then do
       /* GML: the one synonym ":", the tag is the operand; DCF GML

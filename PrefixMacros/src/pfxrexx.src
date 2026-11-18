@@ -1,3 +1,4 @@
+/* Phase B changes made with AI assistance from Claude Opus 5.5 (Anthropic) -- 16-18 Nov 2026 */
 /* PFXREXX XEDIT implements XEDIT prefix commands for structured input
    of REXX. The user should have profiles for the appropriate file
    types, e.g., EXEC, XEDIT, that issue the commands:
@@ -79,6 +80,10 @@ debug = 0
 #endif /* THE */
 
 Def_env = address()
+
+/* The definition's data: indentation units, look-back rules, options */
+#context
+
 if Def_env = THE then do
    Bump = ''                  /* THE CLP after ADD differs from XEDIT */
    parse upper source opsys calltype path
@@ -86,28 +91,33 @@ if Def_env = THE then do
 #ifdef THE
    if Func = CLEAR then exit 0
 #endif /* THE */
-   Indent_DO     = 3
-   Indent_IF     = 3
-   Indent_label  = 3
-   Indent_SELECT = 1
-   Indent_WHEN   = 2
+   Indent_DO     = Unit_DO
+   Indent_IF     = Unit_IF
+   Indent_label  = Unit_label
+   Indent_SELECT = Unit_SELECT
+   Indent_WHEN   = Unit_WHEN
    end
 else do
    Bump = '+1'
    parse upper source opsys calltype fn ft fm Command_name Default_any
    parse upper arg Pref Func Pline Op1 Op2 Op3 .
+   Indent_DO     = ''
+   Indent_IF     = ''
+   Indent_label  = ''
+   Indent_SELECT = ''
+   Indent_WHEN   = ''
    address CMS GLOBALV SELECT PFXREXX ,
-                       GET Indent_DO Indent_IF Indent_SELECT Indent_WHEN
+                       GET Indent_DO Indent_IF Indent_label Indent_SELECT Indent_WHEN
    if Indent_DO     = '' then
-      Indent_DO     = 3
+      Indent_DO     = Unit_DO
    if Indent_IF     = '' then
-      Indent_IF     = 3
+      Indent_IF     = Unit_IF
    if Indent_label  = '' then
-      Indent_label  = 3
+      Indent_label  = Unit_label
    if Indent_SELECT = '' then
-      Indent_SELECT = 1
+      Indent_SELECT = Unit_SELECT
    if Indent_WHEN   = '' then
-      Indent_WHEN   = 2
+      Indent_WHEN   = Unit_WHEN
    end
 if debug then do
    say 'address()='Def_env              ,
@@ -202,6 +212,27 @@ Mask_user = MASK.1                /* the user's own insertion mask      */
 #endif /* THE */
 'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
 
+/* Keywords that open a block, line comment, continuation characters
+   (from the language definition) */
+/* The user's options: keyword case (ASIS, LOWER or UPPER) and margins
+   (left and right columns).  Under CMS: GLOBALV SELECT <macro> SET
+   PFX_CASE UPPER, GLOBALV SELECT <macro> SET PFX_MARGINS 2 72; under
+   THE: the environment variables <macro>_CASE and <macro>_MARGINS. */
+Pfx_case    = ''
+Pfx_margins = ''
+#ifdef THE
+if Def_env = THE then do
+   Pfx_case    = value(Option_group'_CASE',,'ENVIRONMENT')
+   Pfx_margins = value(Option_group'_MARGINS',,'ENVIRONMENT')
+   end
+else
+#endif /* THE */
+   address CMS 'GLOBALV SELECT' Option_group 'GET PFX_CASE PFX_MARGINS'
+if Pfx_case <> '' then
+   Keyword_case = translate(strip(Pfx_case))
+if Pfx_margins <> '' then
+   parse var Pfx_margins Margin_left Margin_right .
+
 /* Find the governing line, or the comment context (Find_context) */
 call Find_context
 
@@ -218,16 +249,26 @@ select
       /* No indent after empty line */
       Op_col = 1
       end
+   when left(Op_old,2) = '::' then do
+      /* An ooRexx directive (::METHOD etc.): its body starts in column 1 */
+      Op_old = ''
+      Op_col = 1
+      end
    when Colon > 0 then do
       /* Potential keyword is first word after label */
       /* Don't assume separating blank */
       parse var Op_old . ':' Op_new
+      if Label_mode = 'PREFIX' & Op_new = '' then
+         /* PL/I: a label prefixes a statement; the statement's keyword
+            (the next word) decides the indent, from the label's column */
+         Op_new = word(Text,2)
       If Op_new = '' then
          /* Indent Indent_label after standalone label */
          Op_col = Op_col + Indent_label
       else do
-         /* Indent to first word after label */
-         Op_col = verify(Text, ' ', N, Op_col + Colon)
+         /* Indent to first word after label (PL/I: from the label) */
+         if Label_mode <> 'PREFIX' then
+            Op_col = verify(Text, ' ', N, Op_col + Colon)
          Op_old = strip(Op_new)
          end
       end
@@ -246,18 +287,42 @@ if Comment_col < 0 then do
    Op_col = Local_col
    end
 Indent = Op_col - 1
-/* Upper case potential keyword */
+/* Upper case potential keyword; a keyword ends at ";" or "(" (PL/I:
+   "do;", "when(x)") */
 Op_old = translate(Op_old)
+parse var Op_old Op_old '(' .
+parse var Op_old Op_old ';' .
+
+/* After a block's END (which the templates put at the body's column),
+   align with the line it closes: the nearest line above that is
+   indented less than the END, comments skipped (§closes END) */
+if End_kw <> '' & Op_old = End_kw then do
+   Lnum = Gov_line - 1
+   do while Lnum > 0
+      'COMMAND :'Lnum 'EXTRACT /CURLINE'
+      T = strip(CURLINE.3)
+      c = verify(CURLINE.3,' ')
+      if c > 0 & c < Op_col & left(T,2) <> '/*' & ,
+         (Line_comment = '' | left(T,length(Line_comment)) <> Line_comment) then do
+         Op_col = c
+         Indent = c - 1
+         leave
+         end
+      Lnum = Lnum - 1
+      end
+   Op_old = ''
+   /* restore the command line's CURLINE. only: a second EXTRACT
+      /CURSOR here crashes CRXTHE 0.9.1 later in the run */
+   'COMMAND :'Pline 'EXTRACT /CURLINE'
+   end
 
 /* Adjust indentation based on command and statement keyword */
 select
-   when Op_old = DO     then
+   when wordpos(Op_old,Opens_DO) > 0 then
       Indent = Indent + Indent_DO
-   when Op_old = ELSE   | ,
-        Op_old = IF     then
+   when wordpos(Op_old,Opens_IF) > 0 then
       Indent = Indent + Indent_IF
-   when Op_old = OTHERWISE | ,
-        Op_old = WHEN      then
+   when wordpos(Op_old,Opens_WHEN) > 0 then
       /* indent anything but WHEN or OTHERWISE after a WHEN or OTHERWISE */
 #ifndef THE
       if ªabbrev(OTHERWISE,Command_name,4) & ,
@@ -267,13 +332,48 @@ select
          \abbrev(WHEN,     Command_name,3) then
 #endif /* THE */
          Indent = Indent + Indent_WHEN
-   when Op_old = SELECT then
+   when wordpos(Op_old,Opens_SELECT) > 0 then
       Indent = Indent + Indent_SELECT
    otherwise
       if abbrev(WHEN,     Command_name,3) then
          Indent = Indent - Indent_WHEN
    end
-Indent = max(0,Indent)
+/* A command anchored to an enclosing keyword line (NetRexx METHOD and
+   PROPERTIES): indented one DO unit from the nearest line above that
+   starts with the anchor keyword (CLASS), whatever the line above is */
+Anchored = 0
+do i = 1 to words(Anchor_cmds) by 2
+   if abbrev(word(Anchor_cmds,i), Command_name, word(Anchor_cmds,i+1)) then
+      Anchored = 1
+   end
+/* Sanity check (§before): e.g. NetRexx PROPERTIES may not follow a
+   METHOD in its class; refused, with nothing inserted */
+Before = 0
+do i = 1 to words(Before_cmds) by 2
+   if abbrev(word(Before_cmds,i), Command_name, word(Before_cmds,i+1)) then
+      Before = 1
+   end
+if Anchored then do
+   Lnum = Pline
+   do while Lnum > 0
+      'COMMAND :'Lnum 'EXTRACT /CURLINE'
+      if Before & translate(word(CURLINE.3,1)) = Before_kw then do
+         /* restore the command line's CURLINE. only: a second EXTRACT
+            /CURSOR here crashes CRXTHE 0.9.1 later in the run */
+         'COMMAND :'Pline 'EXTRACT /CURLINE'
+         call Error_msg Command_name 'must come before the first' Before_kw
+         end
+      if translate(word(CURLINE.3,1)) = Anchor_kw then do
+         Indent = verify(CURLINE.3,' ') - 1 + Indent_DO
+         leave
+         end
+      Lnum = Lnum - 1
+      end
+   /* restore the command line's CURLINE. only (see the END rule) */
+   'COMMAND :'Pline 'EXTRACT /CURLINE'
+   end
+/* never left of the left margin (PL/I source starts in column 2) */
+Indent = max(Margin_left - 1, Indent)
 Op_col = Indent + 1
 Pad    = left('',Indent)
 
@@ -519,7 +619,8 @@ Find_context:
    /* Sets Text (the line that governs the indentation), Comment_col
       and Local_col (block-comment context), and leaves CURLINE. and
       CURSOR. extracted for the command's line again.                  */
-   procedure expose Pline Text Comment_col Local_col CURLINE. CURSOR.
+   procedure expose Pline Text Comment_col Local_col CURLINE. CURSOR. ,
+                    Line_comment Continue_chars Continue_mode Gov_line
    /* Is the command inside a block comment? The nearest comment delimiter
       at or above the command's line decides: an opening one with no
       closing one after it. On the line that opens the comment, the insert
@@ -573,7 +674,14 @@ Find_context:
       Code = Above
       if right(strip(Code),2) = '*/' & lastpos('/*',Code) > 0 then
          Code = left(Code, lastpos('/*',Code) - 1)
-      Continued = right(strip(Code),1) = ','
+      if Line_comment <> '' & pos(Line_comment,Code) > 0 then
+         Code = left(Code, pos(Line_comment,Code) - 1)
+      if Continue_mode = 'UNLESS' then
+         /* a statement runs on until its terminator (PL/I ";") */
+         Continued = strip(Code) <> '' & ,
+                     pos(right(strip(Code),1), Continue_chars) = 0
+      else
+         Continued = pos(right(strip(Code),1), Continue_chars) > 0
       T = strip(Text)
       select
          when T = '' then
@@ -588,6 +696,9 @@ Find_context:
             end
          when left(T,2) = '/*' & right(T,2) = '*/' then
             nop
+         when Line_comment <> '' & ,
+              left(T,length(Line_comment)) = Line_comment then
+            nop
          when pos('*/',T) > 0 & pos('/*',T) = 0 then
             In_comment = 1
          when Continued then
@@ -598,6 +709,7 @@ Find_context:
       Lnum = Lnum - 1
       Text = Above
       end
+   Gov_line = Lnum
    'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
    return
 
@@ -606,20 +718,22 @@ Get_mask:
    /* Build the template mask in MASK.1 from the user's mask; Add_line
       applies it only to the body lines it adds                         */
 #else /* THE */
-   procedure expose MASK.1 Mask_user Op_col Comment_col
-   /* Build the template mask in MASK.1 from the user's mask: comment
-      delimiters in columns 40 and 70, '.' at the statement column.
-      Insert_line applies it only to the body lines it adds.            */
+   procedure expose MASK.1 Mask_user Op_col Comment_col Mask_items Mask_op
+   /* Build the template mask in MASK.1 from the user's mask and the
+      definition's: the placeholder (Mask_op) at the statement column,
+      then the comment delimiters (Mask_items: column text ...), which
+      win where the two overlap.  Insert_line applies it only to the
+      body lines it adds.                                              */
 #endif /* THE */
    if Op_col = 0 then
       return
    MASK.1 = Mask_user
-   if Comment_col = 0 then do
+   MASK.1 = overlay(Mask_op,MASK.1,Op_col)
+   if Comment_col = 0 then
       /* no comment delimiters in the mask inside a block comment */
-      MASK.1 = overlay('/*',MASK.1,40)
-      MASK.1 = overlay('*/',MASK.1,70)
-      end
-   MASK.1 = overlay('.',MASK.1,Op_col)
+      do i = 1 to words(Mask_items) by 2
+         MASK.1 = overlay(word(Mask_items,i+1),MASK.1,word(Mask_items,i))
+         end
    return
 
 #ifndef THE
@@ -644,6 +758,43 @@ Insert_line:
       COMMAND SET PENDING ON Set_pend
 #endif /* THE */
    return
+
+Kw:
+   procedure expose Keyword_case
+   /* The template text in the user's keyword case: &placeholder
+      tokens and quoted strings keep their case */
+   parse arg Text
+   if Keyword_case <> 'UPPER' & Keyword_case <> 'LOWER' then
+      return Text
+   Lower = 'abcdefghijklmnopqrstuvwxyz'
+   Upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+   Ident = Lower || Upper || '0123456789_'
+   Out   = ''
+   Keep  = 0
+   Quote = ''
+   do i = 1 to length(Text)
+      c = substr(Text,i,1)
+      select
+         when Quote <> '' then
+            if c = Quote then
+               Quote = ''
+         when c = "'" | c = '"' then
+            Quote = c
+         when c = '&' then
+            Keep = 1
+         when Keep & pos(c,Ident) > 0 then
+            nop
+         otherwise do
+            Keep = 0
+            if Keyword_case = 'UPPER' then
+               c = translate(c, Upper, Lower)
+            else
+               c = translate(c, Lower, Upper)
+            end
+         end
+      Out = Out || c
+      end
+   return Out
 
 Set_case:
 #ifndef THE

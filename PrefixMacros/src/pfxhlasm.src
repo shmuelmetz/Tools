@@ -1,3 +1,4 @@
+/* Phase B changes made with AI assistance from Claude Opus 5.5 (Anthropic) -- 16-18 Nov 2026 */
 /* PFXHLASM XEDIT implements XEDIT prefix commands for structured input
    of assembler source using the structured programming macros of the
    High Level Assembler Toolkit.  The user should have profiles for the
@@ -287,6 +288,82 @@ Indent = max(0,Indent)
 Op_col = Indent + 1
 Pad    = left('',Indent)
 
+/* The definition's data; only the keyword case applies to HLASM */
+#context
+
+/* The user's options: keyword case (ASIS, LOWER or UPPER) and margins
+   (left and right columns).  Under CMS: GLOBALV SELECT <macro> SET
+   PFX_CASE UPPER, GLOBALV SELECT <macro> SET PFX_MARGINS 2 72; under
+   THE: the environment variables <macro>_CASE and <macro>_MARGINS. */
+Pfx_case    = ''
+Pfx_margins = ''
+#ifdef THE
+if Def_env = THE then do
+   Pfx_case    = value(Option_group'_CASE',,'ENVIRONMENT')
+   Pfx_margins = value(Option_group'_MARGINS',,'ENVIRONMENT')
+   end
+else
+#endif /* THE */
+   address CMS 'GLOBALV SELECT' Option_group 'GET PFX_CASE PFX_MARGINS'
+if Pfx_case <> '' then
+   Keyword_case = translate(strip(Pfx_case))
+if Pfx_margins <> '' then
+   parse var Pfx_margins Margin_left Margin_right .
+
+/* Sanity check (§within): a command that belongs inside a block
+   (ELSE inside IF ... ENDIF, ITERATE inside DO ... ENDDO, ...) is
+   refused, with nothing inserted, when no such block is open at the
+   command's line.  Openers and closers are counted from that line up;
+   comments and continuation lines are skipped, as in the look-back. */
+Rules = Within_rules
+do while Rules <> ''
+   parse var Rules Rule ';' Rules
+   parse var Rule Opener Closer Names
+   Hit = 0
+   do i = 1 to words(Names) by 2
+      if abbrev(word(Names,i), Command_name, word(Names,i+1)) then
+         Hit = 1
+      end
+   if Hit = 0 then
+      iterate
+   Depth = 0
+   Found = 0
+   Lnum  = Pline
+   do while Lnum > 0 & Found = 0
+      'COMMAND :'Lnum 'EXTRACT /CURLINE'
+      Text  = left(CURLINE.3,71)
+      Above = ''
+      if Lnum > 1 then do
+         'COMMAND :'||(Lnum-1) 'EXTRACT /CURLINE'
+         Above = CURLINE.3
+         end
+      Op = ''
+      if substr(Above,72,1) = ' ' & left(Text,1) <> '*' & ,
+         left(Text,2) <> '.*' then do
+         if left(Text,1) = ' ' then
+            Op = translate(word(Text,1))
+         else
+            Op = translate(word(Text,2))
+         end
+      select
+         when Op = Closer then
+            Depth = Depth + 1
+         when Op = Opener & Depth = 0 then
+            Found = 1
+         when Op = Opener then
+            Depth = Depth - 1
+         otherwise
+            nop
+         end
+      Lnum = Lnum - 1
+      end
+   /* restore the command line's CURLINE. only: a second EXTRACT
+      /CURSOR here crashes CRXTHE 0.9.1 later in the run */
+   'COMMAND :'Pline 'EXTRACT /CURLINE'
+   if Found = 0 then
+      call Error_msg Command_name 'is not within' Opener '...' Closer
+   end
+
 /* Mainline logic */
 if debug then trace ?i
 
@@ -511,6 +588,43 @@ Insert_line:
       COMMAND SET PENDING ON Set_pend
    return
 #endif /* THE */
+
+Kw:
+   procedure expose Keyword_case
+   /* The template text in the user's keyword case: &placeholder
+      tokens and quoted strings keep their case */
+   parse arg Text
+   if Keyword_case <> 'UPPER' & Keyword_case <> 'LOWER' then
+      return Text
+   Lower = 'abcdefghijklmnopqrstuvwxyz'
+   Upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+   Ident = Lower || Upper || '0123456789_'
+   Out   = ''
+   Keep  = 0
+   Quote = ''
+   do i = 1 to length(Text)
+      c = substr(Text,i,1)
+      select
+         when Quote <> '' then
+            if c = Quote then
+               Quote = ''
+         when c = "'" | c = '"' then
+            Quote = c
+         when c = '&' then
+            Keep = 1
+         when Keep & pos(c,Ident) > 0 then
+            nop
+         otherwise do
+            Keep = 0
+            if Keyword_case = 'UPPER' then
+               c = translate(c, Upper, Lower)
+            else
+               c = translate(c, Lower, Upper)
+            end
+         end
+      Out = Out || c
+      end
+   return Out
 
 Set_case:
 #ifdef THE

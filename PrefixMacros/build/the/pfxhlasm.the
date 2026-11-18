@@ -1,3 +1,4 @@
+/* Phase B changes made with AI assistance from Claude Opus 5.5 (Anthropic) -- 16-18 Nov 2026 */
 /* PFXHLASM XEDIT implements XEDIT prefix commands for structured input
    of assembler source using the structured programming macros of the
    High Level Assembler Toolkit.  The user should have profiles for the
@@ -276,6 +277,104 @@ Indent = max(0,Indent)
 Op_col = Indent + 1
 Pad    = left('',Indent)
 
+/* The definition's data; only the keyword case applies to HLASM */
+Opens_DO       = ''
+Opens_IF       = ''
+Opens_SELECT   = ''
+Opens_WHEN     = ''
+Line_comment   = ''
+Continue_mode  = 'TRAILING'
+Continue_chars = ''
+Anchor_kw      = ''
+Anchor_cmds    = ''
+Keyword_case   = 'ASIS'
+Margin_left    = 1
+Margin_right   = 0
+Option_group   = 'PFXHLASM'
+Mask_items     = ''
+Unit_DO        = 2
+Unit_IF        = 2
+Unit_label     = 3
+Unit_SELECT    = 2
+Unit_WHEN      = 2
+Label_mode     = 'LABEL'
+End_kw         = ''
+Before_cmds    = ''
+Before_kw      = ''
+Within_rules   = 'IF ENDIF ELSE 4 ELSEIF 5 ENDIF 5;DO ENDDO DOEXIT 4 ITERATE 5 ASMLEAVE 4;SELECT ENDSEL WHEN 4 OTHRWISE 5 OTHERWISE 5;STRTSRCH ENDSRCH EXITIF 5 ORELSE 5;CASENTRY ENDCASE CASE 4'
+Mask_op        = '.'
+
+/* The user's options: keyword case (ASIS, LOWER or UPPER) and margins
+   (left and right columns).  Under CMS: GLOBALV SELECT <macro> SET
+   PFX_CASE UPPER, GLOBALV SELECT <macro> SET PFX_MARGINS 2 72; under
+   THE: the environment variables <macro>_CASE and <macro>_MARGINS. */
+Pfx_case    = ''
+Pfx_margins = ''
+if Def_env = THE then do
+   Pfx_case    = value(Option_group'_CASE',,'ENVIRONMENT')
+   Pfx_margins = value(Option_group'_MARGINS',,'ENVIRONMENT')
+   end
+else
+   address CMS 'GLOBALV SELECT' Option_group 'GET PFX_CASE PFX_MARGINS'
+if Pfx_case <> '' then
+   Keyword_case = translate(strip(Pfx_case))
+if Pfx_margins <> '' then
+   parse var Pfx_margins Margin_left Margin_right .
+
+/* Sanity check (§within): a command that belongs inside a block
+   (ELSE inside IF ... ENDIF, ITERATE inside DO ... ENDDO, ...) is
+   refused, with nothing inserted, when no such block is open at the
+   command's line.  Openers and closers are counted from that line up;
+   comments and continuation lines are skipped, as in the look-back. */
+Rules = Within_rules
+do while Rules <> ''
+   parse var Rules Rule ';' Rules
+   parse var Rule Opener Closer Names
+   Hit = 0
+   do i = 1 to words(Names) by 2
+      if abbrev(word(Names,i), Command_name, word(Names,i+1)) then
+         Hit = 1
+      end
+   if Hit = 0 then
+      iterate
+   Depth = 0
+   Found = 0
+   Lnum  = Pline
+   do while Lnum > 0 & Found = 0
+      'COMMAND :'Lnum 'EXTRACT /CURLINE'
+      Text  = left(CURLINE.3,71)
+      Above = ''
+      if Lnum > 1 then do
+         'COMMAND :'||(Lnum-1) 'EXTRACT /CURLINE'
+         Above = CURLINE.3
+         end
+      Op = ''
+      if substr(Above,72,1) = ' ' & left(Text,1) <> '*' & ,
+         left(Text,2) <> '.*' then do
+         if left(Text,1) = ' ' then
+            Op = translate(word(Text,1))
+         else
+            Op = translate(word(Text,2))
+         end
+      select
+         when Op = Closer then
+            Depth = Depth + 1
+         when Op = Opener & Depth = 0 then
+            Found = 1
+         when Op = Opener then
+            Depth = Depth - 1
+         otherwise
+            nop
+         end
+      Lnum = Lnum - 1
+      end
+   /* restore the command line's CURLINE. only: a second EXTRACT
+      /CURSOR here crashes CRXTHE 0.9.1 later in the run */
+   'COMMAND :'Pline 'EXTRACT /CURLINE'
+   if Found = 0 then
+      call Error_msg Command_name 'is not within' Opener '...' Closer
+   end
+
 /* Mainline logic */
 if debug then trace ?i
 
@@ -386,7 +485,7 @@ select
             end
          when abbrev('ASMLEAVE',Command_name,4) then do
             Eline  = Cline + 1
-            First  = 'ASMLEAVE label'
+            First  = Kw('ASMLEAVE label')
             Ccol   = Indent + 1 + 9
             COMMAND ':'Iline INPUT Pad || First
             Op_col = Indent + 1 + 0
@@ -395,80 +494,80 @@ select
             end
          when abbrev('CASE',Command_name,4) then do
             Eline  = Cline + 1
-            First  = 'CASE ?'
+            First  = Kw('CASE ?')
             Ccol   = Indent + 1 + 5
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_CASE) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_CASE) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
             end
          when abbrev('CASENTRY',Command_name,5) | abbrev('CASEE',Command_name,5) then do
             Eline  = Cline + 3
-            First  = 'CASENTRY R?,POWER=?,VECTOR=B'
+            First  = Kw('CASENTRY R?,POWER=?,VECTOR=B')
             Ccol   = Indent + 1 + 10
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_CASENTRY) || 'CASE ?'
-            COMMAND          INPUT Pad || left('', Indent_CASENTRY + Indent_CASE) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_CASENTRY) || Kw('CASE ?')
+            COMMAND          INPUT Pad || left('', Indent_CASENTRY + Indent_CASE) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ENDCASE ,'
+            COMMAND          INPUT Pad || Kw('ENDCASE ,')
             end
          when abbrev('DO',Command_name,2) then do
             Eline  = Cline + 2
             select
                when Op1 = '' then do
-                  First  = 'DO ONCE'
+                  First  = Kw('DO ONCE')
                   Cline  = Cline + 1
                   Ccol   = Indent + 1 + Indent_DO
                   end
                when abbrev('ONCE',Op1,1) then do
-                  First  = 'DO ONCE'
+                  First  = Kw('DO ONCE')
                   Cline  = Cline + 1
                   Ccol   = Indent + 1 + Indent_DO
                   end
                when datatype(Op1,'W') then do
-                  First  = 'DO FROM=(R' || Op1 || ')'
+                  First  = Kw('DO FROM=(R' || Op1 || ')')
                   Cline  = Cline + 1
                   Ccol   = Indent + 1 + Indent_DO
                   end
                when abbrev('BY',Op1,1) then do
-                  First  = 'DO FROM=(R?),BY=(' || By_reg || ')'
+                  First  = Kw('DO FROM=(R?),BY=(' || By_reg || ')')
                   Ccol   = Indent + 1 + 10
                   end
                when abbrev('FOREVER',Op1,2) then do
-                  First  = 'DO INF'
+                  First  = Kw('DO INF')
                   Cline  = Cline + 1
                   Ccol   = Indent + 1 + Indent_DO
                   end
                when abbrev('INF',Op1,1) then do
-                  First  = 'DO INF'
+                  First  = Kw('DO INF')
                   Cline  = Cline + 1
                   Ccol   = Indent + 1 + Indent_DO
                   end
                when abbrev('FROM',Op1,2) then do
-                  First  = 'DO FROM=(R?)'
+                  First  = Kw('DO FROM=(R?)')
                   Ccol   = Indent + 1 + 10
                   end
                when abbrev('UNTIL',Op1,1) then do
-                  First  = 'DO UNTIL=if_option'
+                  First  = Kw('DO UNTIL=if_option')
                   Ccol   = Indent + 1 + 9
                   end
                when abbrev('WHILE',Op1,1) then do
-                  First  = 'DO WHILE=if_option'
+                  First  = Kw('DO WHILE=if_option')
                   Ccol   = Indent + 1 + 9
                   end
                otherwise do
-                  First  = 'DO ' || Op1 || ''
+                  First  = Kw('DO ' || Op1 || '')
                   Cline  = Cline + 1
                   Ccol   = Indent + 1 + Indent_DO
                   end
                end
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_DO) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_DO) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ENDDO ,'
+            COMMAND          INPUT Pad || Kw('ENDDO ,')
             end
          when abbrev('DOEXIT',Command_name,4) then do
             Eline  = Cline + 1
-            First  = 'DOEXIT test'
+            First  = Kw('DOEXIT test')
             Ccol   = Indent + 1 + 7
             COMMAND ':'Iline INPUT Pad || First
             Op_col = Indent + 1 + 0
@@ -477,135 +576,135 @@ select
             end
          when abbrev('ELSE',Command_name,4) then do
             Eline  = Cline + 1
-            First  = 'ELSE ,'
+            First  = Kw('ELSE ,')
             Cline  = Cline + 1
             Ccol   = Indent + 1 + Indent_IF
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_IF) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_IF) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
             end
          when abbrev('ELSEIF',Command_name,5) then do
             Eline  = Cline + 1
-            First  = 'ELSEIF test'
+            First  = Kw('ELSEIF test')
             Ccol   = Indent + 1 + 7
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_IF) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_IF) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
             end
          when abbrev('EXITIF',Command_name,5) then do
             Eline  = Cline + 3
-            First  = 'EXITIF if_options'
+            First  = Kw('EXITIF if_options')
             Ccol   = Indent + 1 + 7
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_SEARCH) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_SEARCH) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ORELSE  ,'
-            COMMAND          INPUT Pad || left('', Indent_SEARCH) || 'opcod ,'
+            COMMAND          INPUT Pad || Kw('ORELSE  ,')
+            COMMAND          INPUT Pad || left('', Indent_SEARCH) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
             end
          when abbrev('IF',Command_name,2) then do
             Eline  = Cline + 6
             select
                when Op1 = '' then do
-                  First  = 'IF .'
+                  First  = Kw('IF .')
                   Ccol   = Indent + 1 + 3
                   end
                when datatype(Op1,'W') then do
-                  First  = 'IF (' || Op1 || ')'
+                  First  = Kw('IF (' || Op1 || ')')
                   Cline  = Cline + 1
                   Ccol   = Indent + 1 + Indent_IF
                   end
                when wordpos(Op1,'E EQ GT H L LE LT M N NE NH NL NM NO NP NZ O Z') > 0 then do
-                  First  = 'IF (' || Op1 || ')'
+                  First  = Kw('IF (' || Op1 || ')')
                   Cline  = Cline + 1
                   Ccol   = Indent + 1 + Indent_IF
                   end
                when abbrev('CC',Op1,2) then do
-                  First  = 'IF CC=.'
+                  First  = Kw('IF CC=.')
                   Ccol   = Indent + 1 + 6
                   end
                otherwise
                   call Error_msg Op1 'is an invalid option for IF'
                end
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_IF) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_IF) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ELSEIF .'
-            COMMAND          INPUT Pad || left('', Indent_IF) || 'opcod ,'
+            COMMAND          INPUT Pad || Kw('ELSEIF .')
+            COMMAND          INPUT Pad || left('', Indent_IF) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ELSE  ,'
-            COMMAND          INPUT Pad || left('', Indent_IF) || 'opcod ,'
+            COMMAND          INPUT Pad || Kw('ELSE  ,')
+            COMMAND          INPUT Pad || left('', Indent_IF) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ENDIF  ,'
+            COMMAND          INPUT Pad || Kw('ENDIF  ,')
             end
          when abbrev('ENDIF',Command_name,5) then do
             Eline  = Cline + 0
-            First  = 'ENDIF ,'
+            First  = Kw('ENDIF ,')
             Ccol   = 0
             COMMAND ':'Iline INPUT Pad || First
             end
          when abbrev('ITERATE',Command_name,5) then do
             Eline  = Cline + 0
-            First  = 'ITERATE label'
+            First  = Kw('ITERATE label')
             Ccol   = Indent + 1 + 8
             COMMAND ':'Iline INPUT Pad || First
             end
          when abbrev('ORELSE',Command_name,5) then do
             Eline  = Cline + 1
-            First  = 'ORELSE  ,'
+            First  = Kw('ORELSE  ,')
             Cline  = Cline + 1
             Ccol   = Indent + 1 + Indent_SEARCH
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_SEARCH) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_SEARCH) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
             end
          when abbrev('OTHRWISE',Command_name,5) | abbrev('OTHERWISE',Command_name,5) then do
             Eline  = Cline + 1
-            First  = 'OTHRWISE ,'
+            First  = Kw('OTHRWISE ,')
             Cline  = Cline + 1
             Ccol   = Indent + 1 + Indent_WHEN
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_WHEN) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_WHEN) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
             end
          when abbrev('SEARCH',Command_name,3) | abbrev('STRTSRCH',Command_name,5) then do
             Eline  = Cline + 8
-            First  = 'STRTSRCH do_options'
+            First  = Kw('STRTSRCH do_options')
             Ccol   = Indent + 1 + 9
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_SEARCH) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_SEARCH) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'EXITIF if_options'
-            COMMAND          INPUT Pad || left('', Indent_SEARCH) || 'opcod ,'
+            COMMAND          INPUT Pad || Kw('EXITIF if_options')
+            COMMAND          INPUT Pad || left('', Indent_SEARCH) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ORELSE  ,'
-            COMMAND          INPUT Pad || left('', Indent_SEARCH) || 'opcod ,'
+            COMMAND          INPUT Pad || Kw('ORELSE  ,')
+            COMMAND          INPUT Pad || left('', Indent_SEARCH) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ENDLOOP ,'
-            COMMAND          INPUT Pad || left('', Indent_SEARCH) || 'opcod ,'
+            COMMAND          INPUT Pad || Kw('ENDLOOP ,')
+            COMMAND          INPUT Pad || left('', Indent_SEARCH) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ENDSRCH  ,'
+            COMMAND          INPUT Pad || Kw('ENDSRCH  ,')
             end
          when abbrev('SELECT',Command_name,3) then do
             Eline  = Cline + 5
-            First  = 'SELECT ,'
+            First  = Kw('SELECT ,')
             Cline  = Cline + 1
             Ccol   = Indent + 1 + Indent_SELECT + 5
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_SELECT) || 'WHEN if_test'
-            COMMAND          INPUT Pad || left('', Indent_SELECT + Indent_WHEN) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_SELECT) || Kw('WHEN if_test')
+            COMMAND          INPUT Pad || left('', Indent_SELECT + Indent_WHEN) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || left('', Indent_SELECT) || 'OTHRWISE ,'
-            COMMAND          INPUT Pad || left('', Indent_SELECT + Indent_WHEN) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_SELECT) || Kw('OTHRWISE ,')
+            COMMAND          INPUT Pad || left('', Indent_SELECT + Indent_WHEN) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
-            COMMAND          INPUT Pad || 'ENDSEL'
+            COMMAND          INPUT Pad || Kw('ENDSEL')
             end
          when abbrev('WHEN',Command_name,4) then do
             Eline  = Cline + 1
-            First  = 'WHEN if_test'
+            First  = Kw('WHEN if_test')
             Ccol   = Indent + 1 + 5
             COMMAND ':'Iline INPUT Pad || First
-            COMMAND          INPUT Pad || left('', Indent_WHEN) || 'opcod ,'
+            COMMAND          INPUT Pad || left('', Indent_WHEN) || Kw('opcod ,')
             COMMAND          SET   PENDING ON 'RIC'
             end
          otherwise
@@ -680,6 +779,43 @@ Insert_line:
    if Set_pend <> '' then
       COMMAND SET PENDING ON Set_pend
    return
+
+Kw:
+   procedure expose Keyword_case
+   /* The template text in the user's keyword case: &placeholder
+      tokens and quoted strings keep their case */
+   parse arg Text
+   if Keyword_case <> 'UPPER' & Keyword_case <> 'LOWER' then
+      return Text
+   Lower = 'abcdefghijklmnopqrstuvwxyz'
+   Upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+   Ident = Lower || Upper || '0123456789_'
+   Out   = ''
+   Keep  = 0
+   Quote = ''
+   do i = 1 to length(Text)
+      c = substr(Text,i,1)
+      select
+         when Quote <> '' then
+            if c = Quote then
+               Quote = ''
+         when c = "'" | c = '"' then
+            Quote = c
+         when c = '&' then
+            Keep = 1
+         when Keep & pos(c,Ident) > 0 then
+            nop
+         otherwise do
+            Keep = 0
+            if Keyword_case = 'UPPER' then
+               c = translate(c, Upper, Lower)
+            else
+               c = translate(c, Lower, Upper)
+            end
+         end
+      Out = Out || c
+      end
+   return Out
 
 Set_case:
    procedure expose Count Pline ZONE.
