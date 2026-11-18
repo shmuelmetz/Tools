@@ -112,12 +112,15 @@ $(DOC_DIR)/pfx.slides.odp: $(DOC_DIR)/pfx.slides.tex $(DOC_DIR)/pfx-slides.lua \
 # Packaging and publishing
 # ---------------------------------------------------------------------------
 
-VERSION := $(shell git describe --tags --always 2>/dev/null)
+# Release tags are PrefixMacros-<version> (the tools repository holds
+# other tools too); only the PrefixMacros tags are considered, and the
+# zip is named PrefixMacros-<version>.zip.
+VERSION := $(patsubst PrefixMacros-%,%,$(shell git describe --tags --match 'PrefixMacros-*' --always 2>/dev/null))
 
 release: check docs
 	$(RM) out/PrefixMacros-$(VERSION).zip
 	zip -j -q out/PrefixMacros-$(VERSION).zip $(BUILD) $(SETUP) $(DOCS) pfx-credits.txt
-	@echo "wrote out/PrefixMacros-$(VERSION).zip; attach it to the GitHub release for that tag"
+	@echo "wrote out/PrefixMacros-$(VERSION).zip; attach it to the GitHub release PrefixMacros-$(VERSION)"
 
 export: check
 	@[ -n "$(PERSONAL_WEB)" ] || { echo "set PERSONAL_WEB to the web site's local root"; exit 1; }
