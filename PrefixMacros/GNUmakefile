@@ -21,12 +21,20 @@
 
 REXX      ?= rexx
 SOFFICE   ?= soffice
-LANGS     := rexx hlasm
+# LANGS: the language definitions (lang/<lang>.pfx) or sources
+# (src/pfx<lang>.src) to generate from; MACROS: the macros they give
+# (a definition's :macro.; both GML definitions share src/pfxgml.src).
+# CREDITED: the THE macros that carry the acknowledgements in
+# pfx-credits.txt: all of them, since the GML source reuses the THE
+# compatibility fixes made for PFXREXX and PFXHLASM.
+LANGS     := rexx hlasm gml dcfgml
+MACROS    := pfxrexx pfxhlasm pfxgmlw pfxgmlss
+CREDITED  := $(MACROS)
 upper      = $(shell echo $(1) | tr a-z A-Z)
 
-OUT_THE   := $(foreach l,$(LANGS),out/the/pfx$(l).the)
-OUT_XEDIT := $(foreach l,$(LANGS),out/xedit/PFX$(call upper,$(l)).XEDIT)
-BUILD     := $(foreach l,$(LANGS),build/the/pfx$(l).the build/xedit/PFX$(call upper,$(l)).XEDIT)
+OUT_THE   := $(foreach m,$(MACROS),out/the/$(m).the)
+OUT_XEDIT := $(foreach m,$(MACROS),out/xedit/$(call upper,$(m)).XEDIT)
+BUILD     := $(foreach m,$(MACROS),build/the/$(m).the build/xedit/$(call upper,$(m)).XEDIT)
 
 DOC_DIR   := Documentation
 DOCS      := $(DOC_DIR)/Prefix.Macros.pdf $(DOC_DIR)/Prefix.Macros.odt \
@@ -40,7 +48,7 @@ all: pfx
 generate:
 	$(REXX) gen/pfxgen.rex $(LANGS)
 	$(REXX) gen/pfxdoc.rex
-	$(REXX) gen/stamp-pfx-credits.rex pfx-credits.txt $(OUT_THE)
+	$(REXX) gen/stamp-pfx-credits.rex pfx-credits.txt $(foreach m,$(CREDITED),out/the/$(m).the)
 
 pfx: generate
 	@for f in $(OUT_THE) $(OUT_XEDIT); do \
@@ -67,6 +75,9 @@ check: generate
 #     by gen/pfxdoc.rex from lang/rexx.pfx. pandoc does not follow an
 #     \input inside a list, so for the ODT the fragments are expanded
 #     into a temporary copy first (gen/texexpand.rex).
+#   - Citations come from Documentation/pfxrefs.bib: BibTeX (plainurl)
+#     for the PDF, run only for a document that has \bibliography;
+#     pandoc --citeproc for the ODT.
 # (tex4ht/make4ht would build the ODT directly, but it does not write ODP.)
 # ---------------------------------------------------------------------------
 
@@ -74,15 +85,18 @@ docs: generate $(DOCS)
 
 PFX_DOC := $(wildcard out/doc/pfx-*.tex)
 
-$(DOC_DIR)/%.pdf: $(DOC_DIR)/%.tex $(DOC_DIR)/pfxmacros.sty $(PFX_DOC)
+$(DOC_DIR)/%.pdf: $(DOC_DIR)/%.tex $(DOC_DIR)/pfxmacros.sty $(DOC_DIR)/pfxrefs.bib $(PFX_DOC)
+	cd $(DOC_DIR) && xelatex -interaction=nonstopmode $*.tex
+	cd $(DOC_DIR) && if grep -q -F '\bibliography{' $*.tex; then bibtex $*; fi
 	cd $(DOC_DIR) && xelatex -interaction=nonstopmode $*.tex
 	cd $(DOC_DIR) && xelatex -interaction=nonstopmode $*.tex
 
 $(DOC_DIR)/Prefix.Macros.odt: $(DOC_DIR)/Prefix.Macros.tex $(DOC_DIR)/pfxmacros.lua \
                               $(DOC_DIR)/pfx-reference.odt $(DOC_DIR)/odt-cell-borders.lua \
-                              $(PFX_DOC) gen/texexpand.rex
+                              $(DOC_DIR)/pfxrefs.bib $(PFX_DOC) gen/texexpand.rex
 	$(REXX) gen/texexpand.rex $(DOC_DIR)/Prefix.Macros.tex $(DOC_DIR)/Prefix.Macros.expanded.tex
 	cd $(DOC_DIR) && pandoc -f latex+raw_tex --lua-filter=pfxmacros.lua \
+	    --citeproc -M reference-section-title=References \
 	    --reference-doc=pfx-reference.odt -s Prefix.Macros.expanded.tex -o Prefix.Macros.odt
 	cd $(DOC_DIR) && pandoc lua odt-cell-borders.lua Prefix.Macros.odt
 	$(RM) $(DOC_DIR)/Prefix.Macros.expanded.tex

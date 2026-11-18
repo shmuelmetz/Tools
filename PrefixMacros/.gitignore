@@ -8,6 +8,8 @@ Documentation/*.odp
 Documentation/*.pptx
 !Documentation/pfx-reference.odt
 Documentation/*.aux
+Documentation/*.bbl
+Documentation/*.blg
 Documentation/*.log
 Documentation/*.out
 Documentation/*.toc

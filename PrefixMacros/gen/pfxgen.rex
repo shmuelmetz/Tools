@@ -42,10 +42,24 @@ srcDir = pfxDir'src\'
 
 parse arg langs
 if langs~strip = '' then do
+   /* every definition, and every source no definition uses */
+   used = .set~new
+   call SysFileTree pfxDir'lang\*.pfx', 'found.', 'FO'
+   do i = 1 to found.0
+      name = filespec('N', found.i)
+      name = name~left(name~length - 4)
+      langs = langs name
+      def = readDefinition(found.i)
+      if def \== .nil then do
+         if def['SOURCE'] \== .nil then used~put(def['SOURCE']~lower)
+         else used~put(name~lower)
+         end
+      end
    call SysFileTree srcDir'pfx*.src', 'found.', 'FO'
    do i = 1 to found.0
       name = filespec('N', found.i)
-      langs = langs name~substr(4, name~length - 7)
+      name = name~substr(4, name~length - 7)
+      if \used~hasIndex(name~lower) then langs = langs name
       end
    end
 
@@ -53,13 +67,10 @@ hosts = .array~of(.array~of('THE',   'the',   'pfx', '.the',   .false), ,
                   .array~of('XEDIT', 'xedit', 'PFX', '.XEDIT', .true))
 status = 0
 do lang over langs~space~makeArray(' ')
-   lines = readLines(srcDir'pfx'lang'.src')
-   if lines == .nil then do
-      status = 1
-      iterate
-      end
    /* phase B: a language definition, if there is one, supplies the
-      command blocks that replace the source's #commands directive */
+      command blocks that replace the source's #commands directive; its
+      :source. names a source shared with other definitions (default:
+      the language's own), and its :macro. the macro (default PFX<lang>) */
    def = .nil
    defPath = pfxDir'lang\'lang'.pfx'
    if stream(defPath, 'C', 'QUERY EXISTS') \= '' then do
@@ -73,16 +84,26 @@ do lang over langs~space~makeArray(' ')
          iterate
          end
       end
+   srcName = lang
+   macro   = 'pfx'lang
+   if def \== .nil then do
+      if def['SOURCE'] \== .nil then srcName = def['SOURCE']
+      if def['MACRO']  \== .nil then macro   = def['MACRO']
+      end
+   lines = readLines(srcDir'pfx'srcName~lower'.src')
+   if lines == .nil then do
+      status = 1
+      iterate
+      end
    do host over hosts
       out = preprocess(lines, host[1], def)
       if out == .nil then do
-         say 'pfxgen: pfx'lang'.src: unbalanced or unknown directive'
+         say 'pfxgen: pfx'srcName~lower'.src: unbalanced or unknown directive'
          status = 1
          leave
          end
-      name = host[3]
-      if host[5] then name = name || lang~upper
-      else name = name || lang~lower
+      if host[5] then name = macro~upper
+      else name = macro~lower
       target = pfxDir'out\'host[2]'\'name || host[4]
       call writeLines target, out
       say 'pfxgen: wrote' target '('out~items 'lines)'
@@ -143,6 +164,10 @@ exit status
                   out~append(line)
                   end
             end
+         when directive == '#levels' then do
+            if def == .nil then return .nil
+            if active then out~append(emitLevels(def))
+            end
          otherwise
             return .nil
          end
@@ -179,7 +204,17 @@ exit status
    do cmd over def['CMDS']
       name = cmd['NAME']
       rows = cmd['ROWS']
-      out~append(I"when abbrev('"name"',Command_name,"cmd['MIN']") then do")
+      cond = "abbrev('"name"',Command_name,"cmd['MIN']")"
+      do s over cmd['SYNONYMS']
+         cond = cond "| abbrev('"s[1]"',Command_name,"s[2]")"
+         end
+      out~append(I"when" cond "then do")
+      if cmd['LEVEL'] \== .nil then do
+         /* a level command: the macro has already required a Level */
+         parse value cmd['LEVEL'] with low high .
+         out~append(I'   if Level <' low '| Level >' high 'then')
+         out~append(I"      call Error_msg 'Expected level from" low 'to' high"'")
+         end
       out~append(I"   Eline  = Cline +" rows~items)
       /* the first row, by operand variant */
       if cmd['VARS']~items = 0 then do
@@ -188,18 +223,31 @@ exit status
          end
       else do
          out~append(I'   select')
+         anyOther = .false
          do var over cmd['VARS']
+            operand = var['OPERAND']
             select
-               when var['OPERAND'] == '-' then
+               when operand == '-' then
                   out~append(I"      when Op1 = '' then do")
-               when var['OPERAND'] == '*' then
+               when operand == '*' then do
                   out~append(I'      otherwise do')
+                  anyOther = .true
+                  end
+               when operand == '#' then
+                  out~append(I"      when datatype(Op1,'W') then do")
+               when operand~left(1) == '(' then
+                  out~append(I"      when wordpos(Op1,'"operand~substr(2, operand~length - 2)~translate"') > 0 then do")
                otherwise
-                  out~append(I"      when abbrev('"var['OPERAND']~translate"',Op1,"var['MIN']") then do")
+                  out~append(I"      when abbrev('"operand~translate"',Op1,"var['MIN']") then do")
                end
             out~append(I'         First  =' rexxText(var['FIRST']))
             call emitCursor out, I'         ', var['CURSOR'], cmd, def
             out~append(I'         end')
+            end
+         if \anyOther then do
+            /* no variant takes any other operand: it is an error */
+            out~append(I'      otherwise')
+            out~append(I"         call Error_msg Op1 'is an invalid option for" name"'")
             end
          out~append(I'      end')
          end
@@ -207,7 +255,16 @@ exit status
       /* the other rows */
       do row over rows
          cols = unitExpr(row['INDENT'])
-         if row['PEND'] \== .nil then do
+         if row['PEND'] \== .nil & row['TEXT']~strip \== '' then do
+            /* a body line with placeholder text, e.g. HLASM "opcod ,":
+               input it, then set its pending command */
+            if cols == '0' then
+               out~append(I'   COMMAND          INPUT Pad ||' rexxText(row['TEXT']))
+            else
+               out~append(I"   COMMAND          INPUT Pad || left(''," cols") ||" rexxText(row['TEXT']))
+            out~append(I"   COMMAND          SET   PENDING ON '"row['PEND']"'")
+            end
+         else if row['PEND'] \== .nil then do
             out~append(I'   Op_col = Indent + 1 +' cols)
             out~append(I'   call Get_mask')
             if host == 'THE' then
@@ -240,6 +297,11 @@ exit status
          end
       end
    if cursor == .nil then return
+   if cursor == 'none' then do
+      /* leave the cursor where it is */
+      out~append(ind'Ccol   = 0')
+      return
+      end
    if cursor == 'body' then do
       do r = 1 to rows~items
          if rows[r]['PEND'] \== .nil then do
@@ -264,14 +326,50 @@ exit status
       end
    return expr
 
+/* emitLevels -- for #levels: a Classic Rexx assignment of Level_cmds,
+ * the name and minimum abbreviation of each command that takes a level
+ * (:level.), for the macro's operand parsing */
+::routine emitLevels
+   use strict arg def
+   pairs = ''
+   do cmd over def['CMDS']
+      if cmd['LEVEL'] \== .nil then pairs = pairs cmd['NAME'] cmd['MIN']
+      end
+   return "Level_cmds = '"pairs~strip"'"
+
 /* rexxText -- template text as a Rexx expression: quoted, quotes
- * doubled, %op replaced by the operand Op1 */
+ * doubled, %op replaced by the operand Op1, %n by the level Level and
+ * %(name) by the macro's variable name, e.g. %(By_reg) */
 ::routine rexxText
    use strict arg text
    if text == .nil then text = ''
-   parse var text before '%op' after
-   q = "'"before~changeStr("'", "''")"'"
-   if text~pos('%op') = 0 then return q
-   return q '|| Op1 ||' "'"after~changeStr("'", "''")"'"
+   expr = ''
+   do forever
+      /* the earliest substitution */
+      at = 0
+      do tok over .array~of('%op', '%n', '%(')
+         p = text~pos(tok)
+         if p > 0 & (at = 0 | p < at) then do
+            at = p; which = tok
+            end
+         end
+      if at = 0 then leave
+      select
+         when which == '%op' then do
+            len = 3; var = 'Op1'
+            end
+         when which == '%n' then do
+            len = 2; var = 'Level'
+            end
+         otherwise do
+            close = text~pos(')', at)
+            var = text~substr(at + 2, close - at - 2)
+            len = close - at + 1
+            end
+         end
+      expr = expr"'"text~left(at - 1)~changeStr("'", "''")"' ||" var '|| '
+      text = text~substr(at + len)
+      end
+   return expr"'"text~changeStr("'", "''")"'"
 
 ::requires 'pfxdef.cls'

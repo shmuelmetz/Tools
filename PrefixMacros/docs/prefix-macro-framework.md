@@ -3,8 +3,8 @@
 Status, 16 Nov 2026: **phase A is implemented.** Each language has one
 source, `pfx\src\pfx<lang>.src`: the macro itself, with the lines that
 differ between the editors in `#ifdef THE` / `#ifndef THE` / `#else` /
-`#endif` blocks. `pfx\gen\pfxgen.rex` builds `pfx\out	he\pfx<lang>.the`
-and `pfx\outíit\PFX<LANG>.XEDIT` from it, and `make pfx` adds the THE
+`#endif` blocks. `pfx\gen\pfxgen.rex` builds `pfx\out\the\pfx<lang>.the`
+and `pfx\out\xedit\PFX<LANG>.XEDIT` from it, and `make pfx` adds the THE
 acknowledgements (`scripts\stamp-pfx-credits.rex`) and copies changed
 macros to `web\source\`. The generated macros were checked byte for byte
 against the tested, committed ones. A fix is now made once, in the `.src`.
@@ -22,9 +22,19 @@ against the tested, committed ones. A fix is now made once, in the `.src`.
   mask then has no comment delimiters.
 - DO FOREVER is preferred in languages that have it (REXX does: TSO/E,
   REXX/VM and OS/2 REXX references).
-- First step done: `pfx\langexx.pfx` (the REXX definition) and
+- First step done: `pfx\lang\rexx.pfx` (the REXX definition) and
   `pfx\gen\pfxdoc.rex` (reads and checks a definition, writes the
   documentation fragment `pfx\out\doc\pfx-<lang>.tex`).
+
+**Status, 17 Nov 2026: phase B is implemented** for REXX, HLASM and GML.
+The generator (`gen\pfxgen.rex`, ooRexx) emits each macro's command
+blocks from its definition (`lang\rexx.pfx`, `lang\hlasm.pfx`,
+`lang\gml.pfx` for PFXGMLW, `lang\dcfgml.pfx` for PFXGMLSS); the
+look-back, the indentation rules and the built-in commands stay in
+the per-language source (`src\pfx<lang>.src`; both GML definitions
+share `src\pfxgml.src`). The generated HLASM macro gave the same
+files as the hand-written one in 34 CRXTHE cases. Paths are now
+relative to `tools\PrefixMacros`.
 
 **Phase B** (the rest of this document) is still to do: a shared engine
 plus one definition file per language, so that adding a language means
@@ -367,9 +377,11 @@ are mechanical once those exist.
 3. **cREXX Level G:** should it be a third host? Adrian maintains Level G
    ports of these workflows independently, so a generated Level G
    version would compete with his rather than replace it.
-4. **GML macro:** the documentation describes GML prefix commands, but
-   no GML macro is published. Is there one to start from, or is it
-   written new from the documentation?
+4. ~~GML macro~~: decided. His PFXGML XEDIT (1985; listing printed
+   22 Aug 1989, lines 1-432, complete) is the starting point. Its
+   templates are `lang\gml.pfx` (Waterloo GML, PFXGMLW); the DCF GML
+   Starter Set Release 4.0 templates are `lang\dcfgml.pfx` (PFXGMLSS);
+   both share `src\pfxgml.src`.
 5. **XEDIT transfer:** in what form do files go to CMS (code page, record
    format, file name and type)? This decides how the generator writes
    `¬` and names the XEDIT files.

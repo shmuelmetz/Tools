@@ -45,7 +45,7 @@
 
 trace n
 /* trace ?i */
-debug = 1
+debug = 0
 
 Def_env = address()
 if Def_env = THE then do

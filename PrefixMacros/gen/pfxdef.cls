@@ -12,6 +12,11 @@
  * plus every other top-level tag's value; .nil if unreadable */
 ::routine readDefinition public
    use strict arg path
+   knownTags = 'LANG MACRO UNIT MASK COMMENT CONTINUE BLANK LABEL OPENS' ,
+               'NESTED DEDENT CMD MIN DESC FIRST CURSOR VAR ROW LEVEL' ,
+               'BUILTIN SYNONYM DISPATCH INSERT SOURCE ALIAS'
+   /* the tags that can follow another tag on the same line */
+   inlineTags = 'MIN DESC FIRST CURSOR'
    if stream(path, 'C', 'QUERY EXISTS') = '' then do
       say 'pfxdoc:' path 'not found'
       return .nil
@@ -26,24 +31,52 @@
    cmd = .nil
    do line over lines
       if line~strip = '' | line~left(1) = '*' then iterate
-      /* split into :tag. value pairs */
+      /* split into :tag. value pairs; a value may itself contain
+         " :" (GML text such as ":BIB ID=" or ":ROW."), so only
+         " :tag." for a tag that can follow another on its line starts
+         the next tag */
       pairs = .array~new
       rest = line
       do while rest~strip \= ''
          parse var rest ':' tag '.' rest
-         nxt = rest~pos(' :')
-         if nxt = 0 then do
-            value = rest~strip
-            rest = ''
+         value = rest
+         rest = ''
+         from = 1
+         do forever
+            nxt = value~pos(' :', from)
+            if nxt = 0 then leave
+            parse value value~substr(nxt + 2) with cand '.' .
+            if inlineTags~wordPos(cand~translate) > 0 then do
+               rest = value~substr(nxt + 1)
+               value = value~left(nxt)
+               leave
+               end
+            from = nxt + 1
             end
-         else do
-            value = rest~left(nxt)~strip
-            rest = rest~substr(nxt + 1)
-            end
-         pairs~append(.array~of(tag~translate, value))
+         pairs~append(.array~of(tag~translate, value~strip))
          end
       first = pairs[1]
       select
+         when cmd \== .nil & first[1] == 'LEVEL' then
+            cmd['LEVEL'] = first[2]
+         when cmd \== .nil & first[1] == 'ALIAS' then do
+            /* other names for the command, each with its minimum
+               abbreviation (default: the whole name), e.g. STRTSRCH 5
+               for SEARCH; matched with abbrev() like the command */
+            words = first[2]~space~makeArray(' ')
+            i = 1
+            do while i <= words~items
+               alias = words[i]~translate
+               amin  = alias~length
+               if i < words~items then
+                  if datatype(words[i + 1], 'W') then do
+                     amin = words[i + 1]
+                     i = i + 1
+                     end
+               cmd['SYNONYMS']~append(.array~of(alias, amin))
+               i = i + 1
+               end
+            end
          when first[1] == 'UNIT' then
             do item over first[2]~space~makeArray(' ')
                parse var item uname '=' ucols
@@ -54,6 +87,7 @@
             cmd['NAME'] = first[2]~translate
             cmd['VARS'] = .array~new
             cmd['ROWS'] = .array~new
+            cmd['SYNONYMS'] = .array~new
             do p over pairs
                if p[1] \== 'CMD' then cmd[p[1]] = p[2]
                end
@@ -67,7 +101,15 @@
             end
          when cmd \== .nil & first[1] == 'VAR' then do
             var = .directory~new
-            parse value first[2] with var['OPERAND'] var['MIN'] .
+            /* an operand: - (none), * (any other), # (a number), a
+               keyword and its minimum, or (a list of values) */
+            if first[2]~left(1) == '(' then do
+               parse value first[2] with '(' list ')' .
+               var['OPERAND'] = '('list~space')'
+               var['MIN'] = ''
+               end
+            else
+               parse value first[2] with var['OPERAND'] var['MIN'] .
             do p over pairs
                if p[1] \== 'VAR' then var[p[1]] = p[2]
                end

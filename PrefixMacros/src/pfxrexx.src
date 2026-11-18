@@ -73,7 +73,7 @@
 trace n
 /* trace ?i */
 #ifndef THE
-debug = 1
+debug = 0
 #else /* THE */
 debug = 0
 #endif /* THE */

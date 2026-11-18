@@ -1,0 +1,246 @@
+/* PFXGMLW and PFXGMLSS implement XEDIT prefix commands for GML markup
+   in SCRIPT files: PFXGMLW for Waterloo GML, PFXGMLSS for the DCF GML
+   Starter Set.  Both are generated from this source and a definition
+   (lang\gml.pfx, lang\dcfgml.pfx).  The user's profile for the file
+   type, e.g., SCRIPT, issues one command for the dialect in use:
+     SET PREFIX SYNONYM :      PFXGMLW
+   or
+     SET PREFIX SYNONYM :      PFXGMLSS
+
+   The first non-numeric operand is the GML command, e.g., :H1 inserts
+   a level one heading before the line.  A count may precede the
+   command or follow it; for H, HP, I and IH the number that follows
+   is the level:
+     :P      paragraph            3:LI   three list items
+     :H1     level one heading    :H 1   the same
+     :HP2    highlighted phrase   :HP2 3 three of them
+*/
+
+/*
+   Variable usage:
+   Ccol          Cursor column
+   Cline         Cursor line
+   Command_name  Name of the GML prefix command
+   Count         Repetition count
+   Eline         Line number of end
+   Iline         Line after which the template goes
+   Indent        Indentation of inserted text (none for GML)
+   Level         Level operand of H, HP, I and IH
+   Level_cmds    Commands that take a level, with minimum abbreviations
+   Pad           Pad for insertion (none for GML)
+   Pline         Line number of prefix command
+*/
+
+/* Initial housekeeping */
+
+trace n
+/* trace ?i */
+debug = 0
+
+Def_env = address()
+if Def_env = THE then do
+   parse upper source opsys calltype path
+   parse upper arg Pref Synonym Func Pline Op1 Op2 Op3 .
+#ifdef THE
+   if Func = CLEAR then exit 0
+#endif /* THE */
+   end
+else do
+   parse upper source opsys calltype fn ft fm Synonym Default_any
+   parse upper arg Pref Func Pline Op1 Op2 Op3 .
+   end
+if debug then do
+   say 'address()='Def_env              ,
+       'source='source 'opsys='opsys    ,
+       'calltype='calltype 'path='path
+   parse version version
+   say 'parse version='version
+   say 'Pref='Pref 'Synonym='Synonym 'Func='Func 'Pline='Pline 'Op1='Op1 'Op2='Op2 'Op3='Op3
+   end
+':'Pline COMMAND SET PENDING OFF
+
+if Pref <> Prefix then do
+   COMMAND EMSG Synonym 'is a prefix macro.'
+   exit
+   end
+Count  = 1
+Indent = 0
+Pad    = ''
+COMMAND PRESERVE
+#ifdef THE
+SET IMPOS OFF
+#endif /* THE */
+
+/* The commands that take a level: name and minimum abbreviation */
+#levels
+
+/* Split the operands: [count] command[level] [level] [count] */
+Command_name = ''
+Count_given  = 0
+Level        = ''
+Nums         = ''
+Ops          = space(Op1 Op2 Op3)
+if Ops = '' then call Error_msg 'Missing GML prefix subcommand'
+parse var Ops Word1 Ops
+/* a leading count, separate or attached: 3 LI, 3LI */
+if datatype(Word1,'W') then do
+   Count       = Word1
+   Count_given = 1
+   parse var Ops Word1 Ops
+   end
+else do
+   i = verify(Word1,'0123456789')
+   if i > 1 then do
+      Count       = left(Word1,i-1)
+      Count_given = 1
+      Word1       = substr(Word1,i)
+      end
+   end
+if Word1 = '' then call Error_msg 'Missing GML prefix subcommand'
+/* trailing digits on the command: H1, HP2 */
+i = verify(Word1,'0123456789','M')
+if i > 1 then do
+   Nums  = substr(Word1,i)
+   Word1 = left(Word1,i-1)
+   if datatype(Nums,'W') = 0 then
+      call Error_msg 'Invalid GML prefix subcommand'
+   end
+Command_name = Word1
+/* separate numbers after the command */
+do while Ops <> ''
+   parse var Ops w Ops
+   if datatype(w,'W') = 0 then call Error_msg 'Unexpected operand' w
+   Nums = Nums w
+   end
+/* the first number is the level of a level command; a remaining
+   number is the count */
+if Takes_level(Command_name) then do
+   if Nums = '' then call Error_msg 'Missing level'
+   parse var Nums Level Nums
+   end
+Nums = space(Nums)
+if Nums <> '' then do
+   if Count_given | words(Nums) > 1 then call Error_msg 'Too many operands'
+   Count = Nums
+   end
+
+if datatype(Count,'W') = 0 then call Error_msg 'Invalid repetition count'
+if Count < 1 | Count > 99 then call Error_msg 'Expected count from 1 to 99'
+
+#ifndef THE
+'COMMAND          EXTRACT /FLSCREEN /LINE'
+#else /* THE */
+if Def_env = XEDIT then
+   'COMMAND          EXTRACT /FLSCREEN /LINE'
+else
+   'COMMAND          EXTRACT           /LINE'
+#endif /* THE */
+'COMMAND :'Pline 'EXTRACT /CURSOR /CURLINE'
+
+/* Mainline logic: the template goes before the command's line */
+
+select
+   when Func = SET | Func = SHADOW then do Pass = 1 to Count
+      if Pline = 0 then do
+         /* on the top-of-file line: insert at the top */
+         Iline = 0
+         Cline = 1
+         end
+      else do
+         Iline = Pline - 1
+         Cline = Pline
+         end
+      Eline = Cline + 1
+      COMMAND SET SCOPE ALL
+      Ccol  = 0
+      select
+#commands
+         otherwise
+            call Error_msg 'Unknown GML prefix subcommand'
+         end
+      end
+   when Func = CLEAR then do
+      /* Not needed at this time */
+      COMMAND RESTORE
+      exit
+      end
+   otherwise do
+      COMMAND EMSG 'Func='Func'? Should be SET, SHADOW or CLEAR.'
+      COMMAND RESTORE
+      exit
+      end
+   end
+
+/* Final housekeeping */
+
+COMMAND RESTORE
+if Cline > 0 & Ccol > 0 then do
+   COMMAND ':'Cline CURSOR FILE Cline Ccol PRIORITY 30
+#ifndef THE
+   COMMAND EXTRACT '/'PENDING
+   if Pending.0 > 0 then
+      exit
+   if Line.1 > Pline then
+      Flscreen.1 = Flscreen.1 + Count * (Eline - Iline)
+   if Cline < Flscreen.1 | Eline > Flscreen.2 then do
+      select
+         when abbrev(CURLINE.1,M) then
+            Pline = Cline
+         when CURLINE.1 < 0 then
+            Pline = max(Cline,Eline+3+CURLINE.1)
+         otherwise
+            nop
+         end
+      push ':'Pline CURSOR FILE Cline Ccol PRIORITY 70
+      end
+#else /* THE */
+   if Def_env = XEDIT then do
+      /* THE doesn't have EXTRACT|QUERY|SET FLSCREEN */
+      if Line.1 > Pline then
+         Flscreen.1 = Flscreen.1 + Count * (Eline - Iline)
+      if Cline < Flscreen.1 | Eline > Flscreen.2 then do
+         select
+            when abbrev(CURLINE.1,M) then
+               Pline = Cline
+            when CURLINE.1 < 0 then
+               Pline = max(Cline,Eline+3+CURLINE.1)
+            otherwise
+               nop
+            end
+         push ':'Pline CURSOR FILE Cline Ccol PRIORITY 70
+         end
+      end
+#endif /* THE */
+   end
+#ifdef THE
+COMMAND REFRESH
+#endif /* THE */
+exit
+
+/* Subroutines */
+
+Takes_level:
+   /* 1 if arg(1) abbreviates a command that takes a level */
+   procedure expose Level_cmds
+   parse arg Name
+   do i = 1 to words(Level_cmds) by 2
+      if abbrev(word(Level_cmds,i), Name, word(Level_cmds,i+1)) then
+         return 1
+      end
+   return 0
+
+Error_msg:
+   Text = left(':'space(Op1 Op2 Op3,0), 6)
+#ifdef THE
+   if debug then say arg(1)':' Op1 Op2 Op3
+#endif /* THE */
+   COMMAND EMSG arg(1)':' Op1 Op2 Op3
+#ifdef THE
+   COMMAND RESTORE
+#endif /* THE */
+   COMMAND ':'Pline SET PENDING ERROR Text
+#ifndef THE
+   exit
+#else /* THE */
+   exit 1
+#endif /* THE */

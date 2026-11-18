@@ -4,6 +4,7 @@
 /* trace ?i */
 HLAs  = ASM HLASM
 REXXs = CMD EXEC KEX REX REXX SPF THE THERC XED XEDIT
+GMLs  = SCRIPT
 Ftype = translate(Ftype.1())
 select
    when wordpos(Ftype,HLAs) > 0 then do
@@ -81,6 +82,12 @@ select
                 'whe'    /* WHEN                */ ,
                 'when'   /* WHEN                */
       Macro_name = PFXREXX
+      end
+   when wordpos(Ftype,GMLs) > 0 then do
+      /* GML: the one synonym ":", the tag is the operand; DCF GML
+         Starter Set (PFXGMLW is the Waterloo GML version) */
+      Pfx_ops    = ':'
+      Macro_name = PFXGMLSS
       end
    otherwise
       exit
